@@ -18,7 +18,26 @@ function aimScene(){
     const oy=(H-ih)/2-aim.y*H*.02;
     c.drawImage(im,ox,oy,iw,ih);
     c.fillStyle='#06120f22'; c.fillRect(0,0,W,H);
-  } else { dojo(); }
+  } else {
+    // Asset が読み込めない場合でも、会の画面から的や弓が消えないように描画する。
+    dojo();
+    const t=target();
+    const bx=W*.27, top=H*.18, bot=H*.80, bend=W*.12;
+    c.save();
+    c.lineCap='round';
+    c.beginPath(); c.moveTo(bx,top); c.quadraticCurveTo(bx+bend, H*.49, bx,bot);
+    c.strokeStyle='#171b17'; c.lineWidth=Math.max(8,W*.018); c.stroke();
+    c.beginPath(); c.moveTo(bx,top); c.quadraticCurveTo(bx+bend,H*.49,bx,bot);
+    c.strokeStyle='#9a7044'; c.lineWidth=Math.max(4,W*.008); c.stroke();
+    // 弦と矢を弓手の位置に合わせて一続きに描く
+    ln(bx,top,bx,bot,'#e7dfc8',1.5);
+    const handX=bx+W*.035, handY=H*.61;
+    el(handX,handY,W*.025,H*.022,'#c99b7c','#6d4d3a',1);
+    ln(handX,handY,bx+W*.012,H*.43,'#f0e9d9',Math.max(3,W*.006));
+    ln(bx+W*.012,H*.43,t.x,t.y,'#d9c9a5',Math.max(2,W*.003));
+    ln(t.x,t.y,t.x+W*.018,t.y-H*.009,'#eee4ce',1.5);
+    c.restore();
+  }
   return {x:W*.60-aim.x*W*.025,y:H*.53-aim.y*H*.02,r:Math.min(W,H)*.07};
 }
 function render(){c.clearRect(0,0,W,H);if(['kai','release','result'].includes(state)){aimScene();if(state==='release'&&shot){let t=clamp((performance.now()-releaseAt)/600,0,1);ln(W*.30,H*.72,W*.30+W*.22*t,H*.72-H*.22*t,'#f5e1b2',2+t);if(t>=1){state='result';showResult()}}}else{if(!cover(state==='drawing'?art.draw:art.ready)){dojo();archer(state==='drawing'?pull:0)}else{c.fillStyle='#06120f55';c.fillRect(0,0,W,H)}}if(state==='kai'){let sec=(performance.now()-k0)/1000;$('kaiTime').textContent=sec.toFixed(1)+'秒';let v=clamp(sec/5,0,1);$('nobiFill').style.width=(v*100)+'%';$('nobiLabel').textContent=sec<1?'伸び始め':sec<3?'伸び合い中':sec<5?'充実':'十分';$('kaiHint').textContent=sec<1?'会を保ち、左右へ伸び合う':sec<3?'焦らず押し開き、引き続ける':'伸び合いを保つ。指を離すと離れ';}requestAnimationFrame(render)}
