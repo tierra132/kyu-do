@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#172b29">
+<title>弓道 - 一射の稽古</title>
+<style>
+:root{--ink:#f5f1e7;--muted:#c4cec5;--gold:#d8b875;--green:#193c36;--panel:#102622d9}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#132b27;color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;touch-action:none}
+button{font:inherit;color:inherit;border:1px solid #d9c48b88;background:#183a34;border-radius:14px;padding:12px 16px;cursor:pointer;box-shadow:0 5px 18px #0003}
+button:active{transform:scale(.98)}button:disabled{opacity:.4}
+#game{display:block;width:100vw;height:100dvh}
+.hud{position:fixed;inset:0;pointer-events:none;padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 14px);display:flex;flex-direction:column;justify-content:space-between}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.brand{font-size:12px;letter-spacing:.18em;color:#e6d3a4;text-transform:uppercase}
+.phase{font-size:19px;font-weight:750;margin-top:4px;text-shadow:0 2px 8px #0008}
+.pill{font-size:12px;border:1px solid #f4e7c555;background:#102622a8;padding:7px 10px;border-radius:99px;color:#f4e7c5;white-space:nowrap}
+.bottom{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.instruction{align-self:center;max-width:460px;text-align:center;background:#102622dc;border:1px solid #d8b87555;border-radius:16px;padding:12px 16px;backdrop-filter:blur(8px);font-size:14px;line-height:1.5;box-shadow:0 8px 30px #0003}
+.instruction strong{display:block;color:#f0d79a;font-size:15px;margin-bottom:2px}
+.controls{display:flex;justify-content:center;gap:8px;pointer-events:auto;flex-wrap:wrap}
+.controls button{font-size:13px;padding:10px 13px}
+#pullBar{height:5px;border-radius:9px;background:#ffffff35;overflow:hidden;margin-top:7px}
+#pullFill{height:100%;width:0;background:linear-gradient(90deg,#b9d3b8,#f0d79a);transition:width .08s}
+.hidden{display:none!important}
+#toast{position:fixed;left:50%;top:24%;transform:translate(-50%,-50%);font-size:clamp(28px,8vw,52px);font-weight:900;letter-spacing:.08em;text-shadow:0 3px 20px #000b;pointer-events:none;text-align:center}
+#toast small{display:block;font-size:13px;letter-spacing:.04em;font-weight:500;margin-top:8px}
+#permission{position:fixed;inset:0;display:grid;place-items:center;background:#0d211de8;padding:24px;z-index:5}
+.dialog{width:min(100%,420px);border:1px solid #d8b87566;border-radius:22px;background:#17332e;padding:24px;box-shadow:0 20px 70px #0008}
+.dialog h1{font-size:24px;margin:0 0 8px}.dialog p{font-size:14px;color:#c8d4cc;line-height:1.7}
+.dialog button{width:100%;margin-top:9px}
+.note{font-size:11px!important;color:#9eafa5!important}
+@media(min-width:700px){.hud{padding:22px}.bottom{max-width:520px;width:100%;align-self:center}.instruction{font-size:15px}}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="弓道の稽古ゲーム"></canvas>
+<div class="hud">
+  <div class="top">
+    <div><div class="brand">KYUDO · ONE SHOT</div><div class="phase" id="phase">引き分け</div></div>
+    <div class="pill" id="shotNo">一射の稽古</div>
+  </div>
+  <div class="bottom">
+    <div class="instruction" id="instruction"><strong>画面を下へ引く</strong>指を下にスライドして、引き分けを進めます<div id="pullBar"><div id="pullFill"></div></div></div>
+    <div class="controls">
+      <button id="sensorBtn">傾きセンサーを使う</button>
+      <button id="recenterBtn" class="hidden">狙いをリセット</button>
+      <button id="retryBtn" class="hidden">もう一射</button>
+    </div>
+  </div>
+</div>
+<div id="toast" class="hidden"></div>
+<div id="permission">
+  <div class="dialog">
+    <div class="brand">KYUDO · PROTOTYPE 0.1</div>
+    <h1>一射の稽古</h1>
+    <p>背中を見ながら引き分け、会に入ると的と弓・矢の視点へ。スマートフォンの傾き、または画面操作で狙いを定めて射ます。</p>
+    <button id="startBtn">稽古を始める</button>
+    <button id="enableSensorBtn">傾きセンサーを許可する</button>
+    <p class="note">試作版です。射法や実際の弓道の評価を再現するものではありません。センサーを許可しなくても遊べます。</p>
+  </div>
+</div>
+<script>
+(() => {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=0,H=0,dpr=1,state='ready',pull=0,dragging=false,startY=0,lastY=0,drawStart=0,kaiStart=0,aimX=0,aimY=0,baseGamma=null,baseBeta=null,sensorOn=false,shot=null,toastTimer=null,particles=[],resultText='';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+function line(x1,y1,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+function poly(points,fill,stroke=null,width=1){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke()}}
+function ellipse(x,y,rx,ry,fill,stroke=null,lw=1){ctx.beginPath();ctx.ellipse(x,y,Math.max(.1,rx),Math.max(.1,ry),0,0,Math.PI*2);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke()}}
+function roundRect(x,y,w,h,r,fill,stroke=null){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
+function gradient(y1,y2,c1,c2){let g=ctx.createLinearGradient(0,y1,0,y2);g.addColorStop(0,c1);g.addColorStop(1,c2);return g}
+function drawBackground(){
+  ctx.fillStyle=gradient(0,H,'#1c3833','#6e8270');ctx.fillRect(0,0,W,H);
+  // dojo beams / perspective
+  const horizon=H*.32;
+  ctx.fillStyle='#172d29';ctx.fillRect(0,0,W,horizon);
+  ctx.fillStyle='#25443b';ctx.fillRect(0,horizon,W,H-horizon);
+  for(let i=0;i<7;i++){let y=horizon+i*i*H*.012;line(0,y,W,y,'#a6a17a22',1)}
+  // roof beams
+  for(let i=0;i<5;i++){let y=i*H*.035;line(0,y,W,y+H*.018,'#071a17',Math.max(2,H*.004))}
+  for(let x of [W*.08,W*.92]){poly([[x-W*.035,horizon*.15],[x+W*.035,horizon*.15],[x+W*.025,H*.82],[x-W*.025,H*.82]],'#132a26');line(x-W*.02,horizon,x-W*.02,H*.78,'#b5a37b33',2)}
+  // distant target hall glow
+  ellipse(W*.5,horizon*.93,W*.33,H*.04,'#d0c7a01a');
+}
+function drawArcher(progress){
+ const cx=W*.5, scale=Math.min(W/390,H/740), s=clamp(scale,.72,1.25);
+ const foot=H*.83, headY=H*.30+(progress*.018*H), bodyW=W*.14*s, bodyH=H*.22*s;
+ // ground shadow
+ ellipse(cx,foot+5,bodyW*1.55,10*s,'#071a1760');
+ // legs hakama
+ poly([[cx-bodyW*.42,foot-bodyH*.65],[cx+bodyW*.42,foot-bodyH*.65],[cx+bodyW*.88,foot],[cx+bodyW*.10,foot],[cx,foot-bodyH*.12],[cx-bodyW*.1,foot],[cx-bodyW*.88,foot]],'#101e1e','#c5bfa855',1);
+ // hakama pleats
+ for(let i=-2;i<=2;i++)line(cx+i*bodyW*.16,foot-bodyH*.60,cx+i*bodyW*.26,foot-5,'#66716a77',1);
+ // torso
+ poly([[cx-bodyW*.40,headY+H*.085],[cx+bodyW*.40,headY+H*.085],[cx+bodyW*.55,headY+H*.29],[cx-bodyW*.55,headY+H*.29]],'#e5e2d4','#8d9b8e',1);
+ // keikogi seam
+ line(cx,headY+H*.09,cx,headY+H*.27,'#9ca99d',1);
+ // neck
+ roundRect(cx-bodyW*.13,headY+H*.055,bodyW*.26,H*.04,4,'#d6b99b');
+ // head and hair
+ ellipse(cx,headY+H*.025,bodyW*.30,H*.052,'#1b211f');
+ ellipse(cx,headY+H*.008,bodyW*.31,H*.044,'#202a26');
+ // hair tie
+ ellipse(cx+bodyW*.22,headY+H*.035,bodyW*.11,H*.018,'#111a18');
+ // arms progress pose, coordinates interpolate
+ const shoulderL=[cx-bodyW*.38,headY+H*.11], shoulderR=[cx+bodyW*.38,headY+H*.11];
+ const elbowL=[cx-bodyW*(.62+progress*.20),headY+H*(.18-progress*.04)];
+ const handL=[cx-bodyW*(.54+progress*.28),headY+H*(.24-progress*.12)];
+ const elbowR=[cx+bodyW*(.62+progress*.12),headY+H*(.16+progress*.04)];
+ const handR=[cx+bodyW*(.52+progress*.05),headY+H*(.24-progress*.10)];
+ function arm(a,b,c){line(a[0],a[1],b[0],b[1],'#d8d7c9',bodyW*.18);line(b[0],b[1],c[0],c[1],'#d8d7c9',bodyW*.15);ellipse(c[0],c[1],bodyW*.09,bodyW*.07,'#c7a889')}
+ arm(shoulderL,elbowL,handL);arm(shoulderR,elbowR,handR);
+ // bow, slightly to right, curve
+ const bx=cx+bodyW*(.86+progress*.08), by=headY+H*.16, bowH=H*(.34+progress*.04);
+ ctx.beginPath();ctx.moveTo(bx,by-bowH*.52);ctx.quadraticCurveTo(bx+bodyW*.62,by+bowH*.02,bx,by+bowH*.52);ctx.strokeStyle='#b88950';ctx.lineWidth=5*s;ctx.stroke();
+ ctx.beginPath();ctx.moveTo(bx,by-bowH*.52);ctx.lineTo(cx-bodyW*.18+progress*bodyW*.1,headY+H*.20);ctx.lineTo(bx,by+bowH*.52);ctx.strokeStyle='#e4d8b7';ctx.lineWidth=1.2;ctx.stroke();
+ // bow grip rattan wraps
+ for(let i=0;i<8;i++){let yy=by-bowH*.02+i*bowH*.012;line(bx-2*s,yy,bx+3*s,yy+4*s,'#e2c98d',1)}
+ // subtle camera vignette
+ const vg=ctx.createRadialGradient(cx,H*.48,H*.1,cx,H*.48,H*.72);vg.addColorStop(0,'#0000');vg.addColorStop(1,'#06171388');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+}
+function drawDrawScene(){
+ drawBackground();
+ const p=state==='ready'?0:pull;
+ // subtle framing
+ drawArcher(p);
+ // visual draw guide
+ if(state==='ready'||state==='drawing'){
+   const y=H*.68;
+   roundRect(W*.14,y,W*.72,5,3,'#f4edda33');
+   roundRect(W*.14,y,W*.72*p,5,3,'#dfc27e');
+   if(state==='ready'){ellipse(W*.5,H*.72,35,35,'#142b27aa','#e2d0a077',1);line(W*.5,H*.72-12,W*.5,H*.72+12,'#f5e9ca',2);line(W*.5-12,H*.72,W*.5+12,H*.72,'#f5e9ca',2)}
+ }
+}
+function drawTargetScene(){
+ drawBackground();
+ // perspective floor converges to target
+ const hy=H*.31;
+ poly([[0,hy],[W,hy],[W,H],[0,H]],'#6b7a65');
+ for(let i=1;i<9;i++){let t=i/9,y=hy+(H-hy)*t*t;line(0,y,W,y,'#d4c49b25',1)}
+ for(let i=-5;i<=5;i++){line(W*.5+i*W*.035,hy,W*.5+i*W*.21,H,'#e5d4aa2a',1)}
+ // target at distance
+ const tx=W*.5+aimX*W*.12, ty=H*.33+aimY*H*.10;
+ const r=Math.min(W,H)*.105;
+ ellipse(tx,ty,r*1.15,r*1.15,'#b7b8a9','#1d2925',2);
+ ellipse(tx,ty,r*.95,r*.95,'#f4f0df','#b2b3a8',1);
+ ellipse(tx,ty,r*.68,r*.68,'#1d2421');
+ ellipse(tx,ty,r*.44,r*.44,'#f4f0df');
+ ellipse(tx,ty,r*.20,r*.20,'#1d2421');
+ // aiming sight subtle cross
+ line(W*.5-14,H*.52,W*.5+14,H*.52,'#f2e6c7aa',1);
+ line(W*.5,H*.52-14,W*.5,H*.52+14,'#f2e6c7aa',1);
+ // bow on right edge / rattan grip, near-view framing
+ const bx=W*.83, top=H*.25, bh=H*.49;
+ ctx.beginPath();ctx.moveTo(bx,top);ctx.quadraticCurveTo(bx-W*.10,H*.50,bx,top+bh);ctx.strokeStyle='#9a693c';ctx.lineWidth=Math.max(7,W*.025);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(bx,top);ctx.lineTo(W*.79,H*.51);ctx.lineTo(bx,top+bh);ctx.strokeStyle='#e6d6b5';ctx.lineWidth=1.4;ctx.stroke();
+ // rattan near grip
+ for(let i=0;i<13;i++){let yy=H*.46+i*H*.008;line(bx-W*.015,yy,bx+W*.012,yy+H*.006,'#dfc48b',2)}
+ // arrow from lower right toward sight
+ if(state==='kai'){
+   line(W*.76,H*.72,W*.51+aimX*W*.07,H*.52+aimY*H*.06,'#e7d8b9',2);
+   poly([[W*.76,H*.72],[W*.75,H*.70],[W*.77,H*.705]],'#e7d8b9');
+ }
+ // shot marker on target, final arrow point
+ if(state==='release'||state==='result'){
+   const sx=tx+shot.x*r*1.2, sy=ty+shot.y*r*1.2;
+   line(sx-r*.20,sy-r*.06,sx+r*.15,sy+r*.04,'#b17d48',3);
+   poly([[sx+r*.18,sy+r*.04],[sx+r*.05,sy-r*.02],[sx+r*.08,sy+r*.10]],'#e8d6ad');
+ }
+ const vg=ctx.createRadialGradient(W*.5,H*.48,H*.05,W*.5,H*.48,H*.8);vg.addColorStop(0,'#0000');vg.addColorStop(1,'#06171377');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+}
+function drawReleaseScene(){
+ drawTargetScene();
+ if(state==='release'&&shot){
+   const t=clamp((performance.now()-shot.time)/650,0,1);
+   // arrow streak grows toward impact
+   line(W*.72,H*.70,W*.72-(W*.20*t),H*.70-(H*.20*t),'#f0d9a5aa',2+t*2);
+   if(t>=1){state='result';showResult()}
+ }
+}
+function render(){
+ ctx.clearRect(0,0,W,H);
+ if(state==='kai'||state==='release'||state==='result')drawReleaseScene();
+ else drawDrawScene();
+ requestAnimationFrame(render);
+}
+function setPhase(title,instruction,sub=''){
+ $('phase').textContent=title;
+ $('instruction').innerHTML='<strong>'+instruction+'</strong>'+sub;
+}
+function begin(){ $('permission').classList.add('hidden');state='ready';pull=0;shot=null;aimX=0;aimY=0;$('retryBtn').classList.add('hidden');$('recenterBtn').classList.add('hidden');$('sensorBtn').classList.remove('hidden');$('toast').classList.add('hidden');setPhase('引き分け','画面を下へ引く','指を下にスライドして、引き分けを進めます');$('pullBar').style.display='block';$('pullFill').style.width='0%'}
+function startDraw(y){if(state!=='ready')return;state='drawing';dragging=true;startY=y;lastY=y;drawStart=performance.now();pull=0;setPhase('引き分け','そのまま下へ引く','ゆっくり、一定の動きで引き分けます');}
+function moveDraw(y){if(!dragging||state!=='drawing')return;const delta=y-startY;pull=clamp(delta/(H*.30),0,1);$('pullFill').style.width=(pull*100)+'%';}
+function endDraw(){if(!dragging||state!=='drawing')return;dragging=false;if(pull<.76){state='ready';pull=0;$('pullFill').style.width='0%';setPhase('引き分け','もう少し下へ引く','十分に引き分けると会へ移行します');return}
+pull=1;state='kai';kaiStart=performance.now();$('pullBar').style.display='none';$('sensorBtn').classList.remove('hidden');$('recenterBtn').classList.remove('hidden');setPhase('会','狙いを定めて、指を離す','スマホをゆっくり傾けるか、画面をドラッグして狙います');}
+canvas.addEventListener('pointerdown',e=>{if(state==='ready'){canvas.setPointerCapture(e.pointerId);startDraw(e.clientY)}else if(state==='kai'){dragging=true;lastY=e.clientY;startY=e.clientY;canvas.setPointerCapture(e.pointerId)}});
+canvas.addEventListener('pointermove',e=>{if(state==='drawing')moveDraw(e.clientY);else if(state==='kai'&&dragging){aimX=clamp(aimX+(e.clientX-(canvas._lastX??e.clientX))/(W*.55),-1.4,1.4);aimY=clamp(aimY+(e.clientY-lastY)/(H*.55),-1.4,1.4);lastY=e.clientY;canvas._lastX=e.clientX}});
+canvas.addEventListener('pointerup',e=>{if(state==='drawing')endDraw();else if(state==='kai'&&dragging){dragging=false;shoot()}});
+canvas.addEventListener('pointercancel',()=>{if(state==='drawing')endDraw();dragging=false});
+function shoot(){if(state!=='kai')return;state='release';shot={x:aimX*1.6+(Math.random()-.5)*.13,y:aimY*1.6+(Math.random()-.5)*.13,time:performance.now()};$('recenterBtn').classList.add('hidden');$('sensorBtn').classList.add('hidden');setPhase('離れ','矢が放たれた','');}
+function showResult(){
+ const dist=Math.hypot(shot.x,shot.y);
+ const hit=dist<.72;
+ resultText=hit?'的中':'外れ';
+ $('toast').innerHTML=(hit?'的中':'外れ')+'<small>中心からの距離：'+Math.round(dist*100)+' · 試作判定</small>';
+ $('toast').classList.remove('hidden');
+ setPhase('結果',hit?'見事、的中':'次の一射へ',hit?'矢所を確認して、もう一射。':'狙いを調整して、もう一度。');
+ $('retryBtn').classList.remove('hidden');
+}
+async function enableSensor(){
+ try{
+   if(typeof DeviceOrientationEvent==='undefined'){alert('この端末・ブラウザでは傾きセンサーを利用できません。画面操作で遊べます。');return}
+   if(typeof DeviceOrientationEvent.requestPermission==='function'){
+     const p=await DeviceOrientationEvent.requestPermission();if(p!=='granted'){alert('センサーの利用が許可されませんでした。画面操作で遊べます。');return}
+   }
+   addEventListener('deviceorientation',e=>{
+     if(state!=='kai'||e.gamma==null||e.beta==null)return;
+     if(baseGamma===null){baseGamma=e.gamma;baseBeta=e.beta}
+     const gx=clamp((e.gamma-baseGamma)/24,-1,1), gy=clamp((e.beta-baseBeta)/28,-1,1);
+     aimX=clamp(gx*1.2,-1.4,1.4);aimY=clamp(gy*1.2,-1.4,1.4);
+   });
+   sensorOn=true;$('sensorBtn').textContent='センサー使用中';$('sensorBtn').disabled=true;
+   alert('傾きセンサーを有効にしました。会に入ったら「狙いをリセット」で現在の持ち方を基準にできます。');
+ }catch(err){alert('センサーを有効にできませんでした。画面操作で遊べます。')}
+}
+$('startBtn').addEventListener('click',begin);
+$('enableSensorBtn').addEventListener('click',enableSensor);
+$('sensorBtn').addEventListener('click',enableSensor);
+$('recenterBtn').addEventListener('click',()=>{baseGamma=null;baseBeta=null;aimX=0;aimY=0});
+$('retryBtn').addEventListener('click',begin);
+render();
+})();
+</script>
+</body>
+</html>
