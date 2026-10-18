@@ -7,12 +7,7 @@
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:"Hiragino Mincho ProN","Yu Mincho",serif;overflow:hidden}
 canvas{position:fixed;inset:0;width:100%;height:100%}
 input,button{touch-action:manipulation}
-#mp,#rm{display:none}
-input[type=text]{font:inherit;padding:10px;border-radius:10px;border:2px solid #d9b45a;background:#2b1f17;color:var(--fg);width:240px;text-align:center;-webkit-user-select:text;user-select:text}
-#eb{position:fixed;left:0;right:0;bottom:0;display:none;flex-direction:column;align-items:center;gap:8px;padding:12px 12px calc(12px + env(safe-area-inset-bottom));background:rgba(20,12,8,.9);border-top:2px solid #d9b45a;z-index:6}
-#et,#rp{white-space:pre-line;font-size:15px;line-height:1.7}
-#rl button{margin:3px}
-#m,#mp,#rm{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom);background:radial-gradient(ellipse at 50% 30%,rgba(70,44,24,.84),rgba(14,8,4,.95));text-align:center}
+#m{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom);background:radial-gradient(ellipse at 50% 30%,rgba(70,44,24,.84),rgba(14,8,4,.95));text-align:center}
 h1{font-size:56px;margin:0;letter-spacing:.3em;background:linear-gradient(#fff3c4,#d9a63c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #7a1c14)}
 .s{font-size:13px;opacity:.85;margin:0;line-height:1.6}
 button{font:inherit;border:2px solid var(--fg);background:#2b1f17;color:var(--fg);border-radius:12px;padding:10px 16px;font-size:15px}
@@ -29,19 +24,8 @@ input[type=range]{width:240px;accent-color:var(--ac)}
 <div id="sw"></div>
 <button class="go" onclick="go('real')">本番 ― 四つ矢</button>
 <button class="go" style="background:#2b1f17" onclick="go('free')">射込み練習</button>
-<button class="go" style="background:linear-gradient(#2f6fed,#1b3f8f)" onclick="mpOpen()">対戦（射場）</button>
 <p class="s">指を置き下へなぞる＝引き分け<br>引き切ると「会」。スマホを傾けて狙い、指を保って伸び合い<br>指を離すと離れ（会は7〜8秒が理想）<br>弓力で矢の速さと扱いやすさが変わります</p>
 </div>
-<div id="mp"><h1 style="font-size:40px">射場</h1>
-<input id="nm" type="text" maxlength="8" placeholder="名前" value="射手">
-<input id="rc" type="text" maxlength="12" placeholder="合言葉（英数字）" autocapitalize="off">
-<div><button class="go" style="width:150px" onclick="mkRoom()">射場を作る</button> <button onclick="joinRoom($('rc').value)">入る</button></div>
-<label class="s"><input type="checkbox" id="pb" checked> 射場一覧に公開する</label>
-<div id="rl" class="s"></div><button onclick="mpBack()">← 戻る</button></div>
-<div id="rm"><h1 id="rt" style="font-size:26px">射場</h1><div id="rp"></div>
-<button class="go" onclick="startGame('tsume')">射詰め競射で開始</button><button class="go" onclick="startGame('enkin')">遠近競射で開始</button>
-<p class="s">合言葉を友達に伝えて集まりましょう<br>最大5人（大前・二的・中・四的・落ち）</p></div>
-<div id="eb"><div id="et"></div><div><button onclick="startGame('tsume')">射詰めで再戦</button> <button onclick="startGame('enkin')">遠近で再戦</button> <button onclick="leaveRoom()">退出</button></div></div>
 <script>
 const C=document.getElementById('c'),g=C.getContext('2d');let W,H;
 if(!CanvasRenderingContext2D.prototype.roundRect)CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h){this.rect(x,y,w,h)};
@@ -49,13 +33,13 @@ function rs(){const d=devicePixelRatio||1;W=innerWidth;H=innerHeight;C.width=W*d
 rs();addEventListener('resize',rs);
 let kilo=16,col='#e8453c',mode='real',aimS='full',S='menu',p=0,t=0,y0=0,px=0,py=0,ax=0,ay=0,fl=0,shots=[],msg='',v=0,drop=0,ox=0,oy=0,cur=null;
 const $=id=>document.getElementById(id),R_=(a,b)=>a+Math.random()*(b-a),cl=(x,a,b)=>Math.max(a,Math.min(b,x)),Lp=(a,b,k)=>a+(b-a)*k;
-['#e8453c','#2f6fed','#f2c230','#f4ead8'].forEach((c,i)=>{const b=document.createElement('button');b.className='sw'+(i?'':' on');b.style.background=c;b.onclick=()=>{col=colSel=c;[...$('sw').children].forEach(x=>x.classList.remove('on'));b.classList.add('on')};$('sw').appendChild(b)});
+['#e8453c','#2f6fed','#f2c230','#f4ead8'].forEach((c,i)=>{const b=document.createElement('button');b.className='sw'+(i?'':' on');b.style.background=c;b.onclick=()=>{col=c;[...$('sw').children].forEach(x=>x.classList.remove('on'));b.classList.add('on')};$('sw').appendChild(b)});
 $('k').oninput=$('k').onchange=e=>{kilo=+e.target.value;$('kv').textContent=kilo};
 let sensor=false,gm=0,bt=0,gp=0,bp=0,AC=null,sOn=false;
 function orf(e){if(e.gamma==null)return;sensor=true;gm=e.gamma;bt=e.beta}
-function home(){if(RM){leaveRoom();return}S='menu';$('m').style.display='flex';$('bk').style.display='none'}
-function go(m){mode=m;shots=[];S='ready';msg='';p=0;G=null;tsv=1;$('m').style.display='none';$('bk').style.top='32px';$('bk').style.bottom='auto';$('bk').style.display='block';initIO()}
-function initIO(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}
+function home(){S='menu';$('m').style.display='flex';$('bk').style.display='none'}
+function go(m){mode=m;shots=[];S='ready';msg='';p=0;$('m').style.display='none';$('bk').style.display='block';
+try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}
 if(!sOn){sOn=true;try{if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission)DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')addEventListener('deviceorientation',orf)}).catch(()=>{});else addEventListener('deviceorientation',orf)}catch(e){}}}
 function snd(kind,lv){if(!AC)return;const n=AC.currentTime,sh=kind=='shot',len=sh?.22:.18,b=AC.createBuffer(1,AC.sampleRate*len,AC.sampleRate),d=b.getChannelData(0);
 for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*(sh?14:9));
@@ -80,7 +64,7 @@ const Rt=()=>W*.108,Wb=()=>W*.12;
 function release(){
 const q=Math.min(1,t/6),s=sS(t),w=wob(t);ox=ax+w.x;oy=ay+w.y;
 v=(40+2.2*kilo)*(.82+.18*q);drop=.8*(5625/(v*v)-1);
-const j=.03+(1-s)*.5,lx=ox+(aimS=='half'?Wb()/Rt()/2:0)+R_(-j,j),ly=oy+drop+R_(-j,j),hit=Math.hypot(lx,ly)<(G&&G.mode==='tsume'?tsc(st.r||0):1);
+const j=.03+(1-s)*.5,lx=ox+(aimS=='half'?Wb()/Rt()/2:0)+R_(-j,j),ly=oy+drop+R_(-j,j),hit=Math.hypot(lx,ly)<1;
 let n=[];if(t<5)n.push('早気ぎみ：7〜8秒の伸び合いを');if(t>9.5)n.push('詰まり：伸び過ぎ。限界前に離す');
 if(!n.length)n.push(s>.9?'理想の会。満を持した離れ':s>.6?'あと少しで理想の会':'伸びの余地あり');
 cur={lx,ly,hit,t,n:n.join('／'),dur:56/v};fl=0;S='fly';snd('shot',cl((kilo-10)/12,0,1))}
@@ -134,7 +118,7 @@ g.fillStyle='rgba(0,0,0,.07)';for(let i=0;i<70;i++)g.fillRect(i*97%W,H*.3+(i*53%
 g.strokeStyle='rgba(255,255,255,.1)';for(let i=-4;i<5;i++){g.beginPath();g.moveTo(W/2+i*8,H*.6);g.lineTo(W/2+i*W*.4,H);g.stroke()}
 let hz=g.createLinearGradient(0,H*.5,0,H*.62);hz.addColorStop(0,'rgba(240,240,225,0)');hz.addColorStop(.5,'rgba(240,240,225,.35)');hz.addColorStop(1,'rgba(240,240,225,0)');g.fillStyle=hz;g.fillRect(0,H*.5,W,H*.12);
 let sun=g.createRadialGradient(W*.2,0,5,W*.2,0,H*.6);sun.addColorStop(0,'rgba(255,245,200,.55)');sun.addColorStop(1,'rgba(255,245,200,0)');g.fillStyle=sun;g.fillRect(0,0,W,H);
-const cx=W/2,cy=H*.43,R=Rt();g.fillStyle='rgba(0,0,0,.2)';g.fillRect(cx-R*1.15,cy+R*.95,R*2.3,R*.15);tgt(cx,cy,R*tsv)}
+const cx=W/2,cy=H*.43,R=Rt();g.fillStyle='rgba(0,0,0,.2)';g.fillRect(cx-R*1.15,cy+R*.95,R*2.3,R*.15);tgt(cx,cy,R)}
 function vig(){let r=g.createRadialGradient(W/2,H*.43,W*.15,W/2,H*.43,Math.max(W,H)*.72);r.addColorStop(0,'rgba(0,0,0,0)');r.addColorStop(1,'rgba(0,0,0,.6)');g.fillStyle=r;g.fillRect(0,0,W,H)}
 function bowBody(cx,cy,al,dx){const w=Wb(),R=Rt(),Ht=R*1.25,x=cx+dx;g.save();g.globalAlpha=al;
 let gr=g.createLinearGradient(x-w/2,0,x+w/2,0);gr.addColorStop(0,'#1b1209');gr.addColorStop(.3,'#4b3321');gr.addColorStop(1,'#1b1209');g.fillStyle=gr;
@@ -158,63 +142,13 @@ g.strokeStyle='#d9b45a';g.lineWidth=1.5;g.strokeRect(x,y,w,10);
 [7,8].forEach(k=>ln(x+k*sc,y-4,x+k*sc,y+14,1.5,'#fff'));txt('理想',x+7.5*sc,y-6,10,'#ffd34d');
 const px=x+Math.min(t,M)*sc;g.fillStyle='#fff';g.beginPath();g.moveTo(px,y+11);g.lineTo(px-6,y+22);g.lineTo(px+6,y+22);g.fill();
 txt('会 '+t.toFixed(1)+'秒',W-x,y+38,13,'#fff','right');txt('揺れ '+Math.round((1-s0)*100)+'%',x,y+38,12,'#ddd','left')}
-// ===== 対戦（room: 同じ合言葉の射場に集まる／状態はpresenceで同期）=====
-let G=null,RM=null,R0=null,st={},tsv=1,mySeat=-1,myPeer='',anim=null,seen={},my={sh:[]},colSel='#e8453c',eT='',rcode='';
-const CLR=['#e8453c','#2f6fed','#f2c230','#2fa84f','#a35ad6'],NMS={1:['大前'],2:['大前','落ち'],3:['大前','中','落ち'],4:['大前','二的','三的','落ち'],5:['大前','二的','中','四的','落ち']};
-const tsc=r=>Math.max(.5,1-.08*r),vps=()=>RM?RM.peers().filter(p=>p.kind==='viewer'):[],pf=id=>vps().find(p=>p.peer===id);
-const sh=id=>{const p=pf(id),s=(p&&p.presence.g===G.id&&Array.isArray(p.presence.sh)&&p.presence.sh)||[];return anim&&anim.id===id?s.slice(0,-1):s};
-const nmOf=id=>{const p=pf(id);return p?String(p.presence.n||'射手').slice(0,8):'退出'},seatNm=i=>(NMS[G.ord.length]||NMS[5])[i];
-function calc(){const ord=G.ord,T=G.mode==='tsume',R=T?12:2,mk=ord.map(()=>[]);let al=ord.map((_,i)=>i);
-for(let r=0;r<R;r++){const hs=[];
-for(const i of al){const e=sh(ord[i])[r];
-if(!e){if(pf(ord[i]))return{cur:i,r,mk,al};mk[i][r]=T?0:3;continue}
-const d=Math.hypot(e[0],e[1])/100;mk[i][r]=T?(d<tsc(r)?1:0):d;if(T&&d<tsc(r))hs.push(i)}
-if(T){if(hs.length)al=hs;if(al.length<=1)return{done:1,mk,al,r}}}
-return{done:1,mk,al,r:R-1}}
-function tick(dt){if(anim){anim.t+=dt;if(!anim.s&&anim.t>1){anim.s=1;snd(Math.hypot(anim.lx,anim.ly)<tsv?'hit':'miss',.5)}if(anim.t>1.3)anim=null}
-st=calc();tsv=G.mode==='tsume'?tsc(st.r||0):1;
-if(!anim){if(S==='watch'&&!st.done&&st.cur===mySeat)S='ready';else if(S==='ready'&&(st.done||st.cur!==mySeat))S='watch'}
-const on=!!(st.done&&!anim&&S==='watch');$('eb').style.display=on?'flex':'none';if(on)showEnd()}
-function showEnd(){let s;const o=G.ord;
-if(G.mode==='tsume')s=st.al.length===1?'勝者：'+nmOf(o[st.al[0]])+'（'+seatNm(st.al[0])+'）':'引き分け';
-else{const a=o.map((id,i)=>({i,d:st.mk[i].reduce((x,y)=>x+y,0)/Math.max(1,st.mk[i].length)*18})).sort((x,y)=>x.d-y.d);s='遠近競射 結果\n'+a.map((x,k)=>(k+1)+'位 '+nmOf(o[x.i])+'（'+seatNm(x.i)+'） 平均'+x.d.toFixed(1)+'cm').join('\n')}
-if(s!==eT){eT=s;$('et').textContent=s}}
-function mpShot(){my.sh=my.sh.concat([[Math.round(cur.lx*100),Math.round(cur.ly*100)]]);RM.presence({sh:my.sh});S='watch'}
-function watchView(){dojo();if(!G)return;const R2=Math.min(W,H)*.27,cx=W/2,cy=H*.52,T=G.mode==='tsume';tgt(cx,cy,R2*tsv);
-if(T||st.done)G.ord.forEach((id,i)=>{const s=sh(id);(T?[st.r]:s.map((_,k)=>k)).forEach(k=>{const e=s[k];if(e){const mx=cx+e[0]/100*R2,my=cy+e[1]/100*R2;ln(mx-3,my+24,mx,my,3,CLR[i]);g.fillStyle='#fff';g.beginPath();g.arc(mx,my,2.5,0,7);g.fill()}})});
-if(anim){const a=anim,tr=Math.min(1,a.t),x=Lp(W/2,cx+a.lx*R2,tr),y=Lp(H*.9,cy+a.ly*R2,tr)-Math.sin(tr*Math.PI)*H*.1;ln(x,y+36*(1-tr)+4,x,y,3,CLR[a.c])}
-if(!st.done)txt(st.cur===mySeat?'あなたの番':nmOf(G.ord[st.cur])+' の番',W/2,H*.88,18,'#fff')}
-function board(){const o=G.ord,T=G.mode==='tsume',h=o.length*20+30;g.fillStyle='rgba(40,24,10,.88)';g.beginPath();g.roundRect(6,6,W-12,h,8);g.fill();g.strokeStyle='#d9b45a';g.lineWidth=1.5;g.stroke();
-txt('看的所　'+(T?'射詰め競射':'遠近競射')+(st.done?'　終了':'　第'+((st.r||0)+1)+'射'+(T?'（的'+Math.round(tsv*100)+'%）':'')),14,24,12,'#ffd34d','left');
-o.forEach((id,i)=>{const y=46+i*20;g.globalAlpha=(T&&!st.done&&!st.al.includes(i))?.4:1;g.fillStyle=CLR[i];g.beginPath();g.arc(18,y-4,5,0,7);g.fill();
-txt((!st.done&&st.cur===i?'▶':'')+seatNm(i),26,y,12,'#fff','left');txt(nmOf(id),84,y,12,'#f4ead8','left');
-(st.mk[i]||[]).forEach((v,k)=>{const x=150+k*(T?16:46);if(T)txt(v?'◯':'✕',x,y,12,v?'#6fe08a':'#ff7a6e','left');else txt(st.done?(v*18).toFixed(1):'●',x,y,12,'#ddd','left')});g.globalAlpha=1})}
-async function mpOpen(){initIO();$('m').style.display='none';$('mp').style.display='flex';
-if(!R0){try{R0=window.claude&&await claude.use('room')}catch(e){R0=null}if(R0)R0.onPeers(relist)}
-$('rl').textContent=R0?'':'オンライン対戦は、招待されたメンバー（claude.aiで開いた人）のみ使えます';relist()}
-function relist(){const b=$('rl');if(!R0)return;b.textContent='';const seenC={};R0.peers().filter(p=>!p.isMe&&p.presence.dojo&&/^[a-z0-9]{3,12}$/.test(p.presence.dojo)).forEach(p=>{const c=p.presence.dojo;if(seenC[c])return;seenC[c]=1;const x=document.createElement('button');x.textContent=String(p.presence.host||'射手').slice(0,8)+' の射場';x.onclick=()=>joinRoom(c);b.appendChild(x)});if(!b.children.length)b.textContent='公開中の射場はありません'}
-function mpBack(){$('mp').style.display='none';$('m').style.display='flex'}
-function mkRoom(){let c='';for(let i=0;i<4;i++)c+='abcdefghjkmnpqrstuvwxyz23456789'[Math.floor(Math.random()*31)];$('rc').value=c;joinRoom(c,$('pb').checked)}
-async function joinRoom(code,pub){code=String(code).toLowerCase().trim();if(!R0||!/^[a-z0-9]{3,12}$/.test(code)){$('rl').textContent=R0?'合言葉は英数字3〜12文字':'オンライン対戦は使えません';return}
-try{RM=await R0.join('dojo-'+code)}catch(e){$('rl').textContent='入室できませんでした';return}
-rcode=code;const nm=($('nm').value||'射手').slice(0,8);RM.presence({n:nm,g:0,sh:[]});if(pub)R0.presence({dojo:code,host:nm});
-RM.onPeers(onP);$('mp').style.display='none';$('rm').style.display='flex';$('bk').style.top='auto';$('bk').style.bottom='8px';$('bk').style.display='block';S='lobby';tsv=1;onP()}
-function startGame(m){if(!RM)return;const ps=vps().sort((a,b)=>a.peer<b.peer?-1:1).slice(0,5);RM.presence({go:{id:Date.now(),mode:m,ord:ps.map(p=>p.peer)}})}
-function onP(){if(!RM)return;const ps=vps();let b=null;ps.forEach(p=>{const q=p.presence.go;if(q&&Array.isArray(q.ord)&&(!b||q.id>b.id))b=q});
-const me=ps.find(p=>p.isMe&&p.sameTab);myPeer=me?me.peer:'';
-if(b&&(!G||b.id!==G.id)){G=b;mySeat=G.ord.indexOf(myPeer);seen={};anim=null;eT='';my.sh=[];RM.presence({g:G.id,sh:[]});col=mySeat>=0?CLR[mySeat]:colSel;S='watch';$('rm').style.display='none';st=calc()}
-if(G)G.ord.forEach(id=>{const p=ps.find(x=>x.peer===id);if(p&&p.presence.g===G.id&&Array.isArray(p.presence.sh)){const n=p.presence.sh.length,e=p.presence.sh[n-1];if(n>(seen[id]||0)){if(!p.isMe&&e&&G.mode==='tsume')anim={id,lx:e[0]/100,ly:e[1]/100,t:0,c:G.ord.indexOf(id)};seen[id]=n}}});
-if(!G){$('rt').textContent='射場「'+rcode+'」　'+ps.length+'人';$('rp').textContent=ps.slice(0,5).map((p,i)=>NMS[Math.min(ps.length,5)][i]+'　'+String(p.presence.n||'射手').slice(0,8)+(p.isMe?'（あなた）':'')).join('\n')}}
-function leaveRoom(){try{if(RM)RM.leave();if(R0)R0.presence({dojo:null})}catch(e){}RM=null;G=null;mySeat=-1;anim=null;tsv=1;col=colSel;S='menu';['rm','eb','bk','mp'].forEach(i=>$(i).style.display='none');$('bk').style.top='32px';$('bk').style.bottom='auto';$('m').style.display='flex'}
 let last=0;
 function loop(ts){requestAnimationFrame(loop);const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
 if(S==='kai'){t+=dt;if(sensor){const G=.12*(.75+.05*(kilo-10))*(.3+1.1*(1-sS(t)));ax=cl(ax+(gm-gp)*G,-3,3);ay=cl(ay-(bt-bp)*G,-3,3);gp=gm;bp=bt}}
-if(S==='fly'){fl+=dt/cur.dur;if(fl>=1){snd(cur.hit?'hit':'miss',cl((kilo-10)/12,0,1));if(G)mpShot();else{shots.push(cur.hit);S='result'}}}
-if(G)tick(dt);
+if(S==='fly'){fl+=dt/cur.dur;if(fl>=1){shots.push(cur.hit);S='result';snd(cur.hit?'hit':'miss',cl((kilo-10)/12,0,1))}}
 const R=Rt(),w=S==='kai'?wob(t):{x:0,y:0};
-if(S==='watch'||S==='lobby'){watchView()}
-else if(S==='menu'||S==='ready'||S==='draw'){dojo();archer(W*.4,H*.8,H*.5,p,0);hud();
-const hint=S==='ready'?(msg||(G?'あなたの番　指を置いて下へなぞる':'指を置いて、下へゆっくりなぞる')):'';
+if(S==='menu'||S==='ready'||S==='draw'){dojo();archer(W*.4,H*.8,H*.5,p,0);hud();
+const hint=S==='ready'?(msg||'指を置いて、下へゆっくりなぞる'):'';
 txt(hint,W/2,H*.93,16,'#fff');
 if(S==='draw'){g.fillStyle='rgba(0,0,0,.3)';g.fillRect(W*.2,H*.95,W*.6,7);g.fillStyle=col;g.fillRect(W*.2,H*.95,W*.6*p,7)}}
 else if(S==='kai'||S==='fly'){const bx=(S==='kai'?ax+w.x:ox),by=(S==='kai'?ay+w.y:oy),cx=W/2+bx*R,cy=H*.43+by*R;
@@ -234,7 +168,6 @@ const dx=cur.lx,dy=cur.ly,pos=(Math.abs(dx)<.3&&Math.abs(dy)<.3)?'正中':(Math.
 txt('矢所：'+pos+'　矢勢 '+v.toFixed(0)+'m/s　落差 '+(drop>=0?'＋':'')+drop.toFixed(2),W/2,H*.71,15,'#3b2a1a');
 txt('会 '+cur.t.toFixed(1)+'秒 ― '+cur.n,W/2,H*.76,14,'#3b2a1a');txt('タップで次へ',W/2,H*.93,15,'#fff')}
 if(S==='end'){const n=shots.filter(x=>x).length;txt(n===4?'皆中！！':n+'中 / 4射',W/2,H*.12,38,n===4?'#e8453c':'#3b2a1a');txt(n===4?'見事な皆中です':n>=3?'あと一本！':'残心を大切に',W/2,H*.71,18,'#3b2a1a');txt('タップでメニューへ',W/2,H*.93,15,'#fff')}
-hud()}
-if(G&&S!=='kai'&&S!=='fly'&&S!=='lobby')board();}
+hud()}}
 requestAnimationFrame(loop);
 </script></body></html>
