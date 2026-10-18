@@ -6,11 +6,11 @@
 *{box-sizing:border-box;-webkit-user-select:none;user-select:none;touch-action:none}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:"Hiragino Mincho ProN","Yu Mincho",serif;overflow:hidden}
 canvas{position:fixed;inset:0;width:100%;height:100%}
-#m{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom);background:rgba(20,12,8,.78);text-align:center}
-h1{font-size:44px;margin:0;letter-spacing:.2em;text-shadow:0 3px 0 var(--ac)}
+#m{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom);background:radial-gradient(ellipse at 50% 30%,rgba(70,44,24,.84),rgba(14,8,4,.95));text-align:center}
+h1{font-size:56px;margin:0;letter-spacing:.3em;background:linear-gradient(#fff3c4,#d9a63c);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #7a1c14)}
 .s{font-size:13px;opacity:.85;margin:0;line-height:1.6}
 button{font:inherit;border:2px solid var(--fg);background:#2b1f17;color:var(--fg);border-radius:12px;padding:10px 16px;font-size:15px}
-.go{background:var(--ac);border-color:#fff;font-weight:bold;width:240px}
+.go{background:linear-gradient(#d9402f,#8f1d17);border-color:#d9b45a;font-weight:bold;width:240px;letter-spacing:.2em;box-shadow:0 3px 0 #4a0f0b}
 .sw{width:34px;height:34px;border-radius:50%;padding:0;margin:0 4px}
 .on{outline:3px solid #fff}
 input[type=range]{width:240px;accent-color:var(--ac)}
@@ -23,7 +23,7 @@ input[type=range]{width:240px;accent-color:var(--ac)}
 <div id="sw"></div>
 <button class="go" onclick="go('real')">本番 ― 四つ矢</button>
 <button class="go" style="background:#2b1f17" onclick="go('free')">射込み練習</button>
-<p class="s">指を置き下へなぞる＝引き分け<br>引き切ると「会」。スマホを傾けて狙い、指を保って伸び合い<br>指を離すと離れ。弓力で矢の速さと扱いやすさが変わります</p>
+<p class="s">指を置き下へなぞる＝引き分け<br>引き切ると「会」。スマホを傾けて狙い、指を保って伸び合い<br>指を離すと離れ（会は7〜8秒が理想）<br>弓力で矢の速さと扱いやすさが変わります</p>
 </div>
 <script>
 const C=document.getElementById('c'),g=C.getContext('2d');let W,H;
@@ -44,8 +44,9 @@ for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*(sh?14:
 const s=AC.createBufferSource();s.buffer=b;const f=AC.createBiquadFilter();f.type=kind=='miss'?'lowpass':'bandpass';f.frequency.value=sh?1200+lv*2500:kind=='hit'?2200:500;
 const gn=AC.createGain();gn.gain.value=(sh?.25:.35)+lv*.6;s.connect(f);f.connect(gn);gn.connect(AC.destination);s.start(n);
 if(!sh){const o=AC.createOscillator(),og=AC.createGain();o.frequency.value=kind=='hit'?240:90;og.gain.setValueAtTime(.3+lv*.3,n);og.gain.exponentialRampToValueAtTime(.001,n+.15);o.connect(og);og.connect(AC.destination);o.start(n);o.stop(n+.2)}}
-const Tm=()=>11.5-0.4*kilo;
-function amp(t){return(0.07+0.35*Math.max(0,1-t/2.5)+0.22*Math.max(0,t-Tm()))*(0.7+0.04*(kilo-10))}
+const Tm=()=>7.5;
+const sS=t=>{const d=t-7.5,s=d<0?2.6:1.5-(kilo-16)*.04;return Math.exp(-(d/s)**2)};
+function amp(t){return(0.05+0.5*(1-sS(t)))*(0.7+0.04*(kilo-10))}
 function wob(t){const A=amp(t);
 return{x:A*(Math.sin(t*1.7)+.5*Math.sin(t*4.3+1)+.15*Math.sin(t*13)),y:A*(Math.cos(t*1.3)+.5*Math.sin(t*3.9)+.15*Math.sin(t*11))}}
 C.addEventListener('pointerdown',e=>{
@@ -59,11 +60,11 @@ function up(){if(S==='draw'){S='ready';p=0;msg='不射：引き分けが足り�
 C.addEventListener('pointerup',up);C.addEventListener('pointercancel',up);
 const Rt=()=>W*.108,Wb=()=>W*.12;
 function release(){
-const q=Math.min(1,t/3.5),w=wob(t);ox=ax+w.x;oy=ay+w.y;
+const q=Math.min(1,t/6),s=sS(t),w=wob(t);ox=ax+w.x;oy=ay+w.y;
 v=(40+2.2*kilo)*(.82+.18*q);drop=.8*(5625/(v*v)-1);
-const j=.04+(1-q)*.5,lx=ox+(aimS=='half'?Wb()/Rt()/2:0)+R_(-j,j),ly=oy+drop+R_(-j,j),hit=Math.hypot(lx,ly)<1;
-let n=[];if(t<2)n.push('早気ぎみ：もっと伸び合いを');if(t>Tm()+2)n.push('詰まり：伸び過ぎ。弓力に合った時間で離す');
-if(!n.length)n.push(t<Tm()?'良い伸び合い':'そろそろ限界');
+const j=.03+(1-s)*.5,lx=ox+(aimS=='half'?Wb()/Rt()/2:0)+R_(-j,j),ly=oy+drop+R_(-j,j),hit=Math.hypot(lx,ly)<1;
+let n=[];if(t<5)n.push('早気ぎみ：7〜8秒の伸び合いを');if(t>9.5)n.push('詰まり：伸び過ぎ。限界前に離す');
+if(!n.length)n.push(s>.9?'理想の会。満を持した離れ':s>.6?'あと少しで理想の会':'伸びの余地あり');
 cur={lx,ly,hit,t,n:n.join('／'),dur:56/v};fl=0;S='fly';snd('shot',cl((kilo-10)/12,0,1))}
 function ln(a,b,c,d,w,co){g.strokeStyle=co;g.lineWidth=w;g.lineCap='round';g.beginPath();g.moveTo(a,b);g.lineTo(c,d);g.stroke()}
 function L2(a,b,w,co){ln(a[0],a[1],b[0],b[1],w,co)}
@@ -80,7 +81,7 @@ g.beginPath();g.moveTo(...P([-.08,.52]));g.lineTo(...P([.08,.52]));g.lineTo(...P
 [-.1,-.03,.04,.11].forEach(i=>L2(P([i*.6,.5]),P([i*2.2,.03]),1,'rgba(255,255,255,.14)'));
 g.fillStyle='#f4f0e6';[-.17,.17].forEach(i=>{g.beginPath();g.ellipse(...P([i,.012]),.065*h,.02*h,0,0,7);g.fill()});
 let wg=g.createLinearGradient(x-.09*h,0,x+.09*h,0);wg.addColorStop(0,'#cfcabc');wg.addColorStop(.5,'#fffdf6');wg.addColorStop(1,'#d9d4c6');g.fillStyle=wg;
-g.beginPath();g.moveTo(...P([-.09,.8]));g.lineTo(...P([.09,.8]));g.lineTo(...P([.075,.5]));g.lineTo(...P([-.075,.5]));g.fill();
+g.beginPath();g.moveTo(...P([-.09,.8]));g.lineTo(...P([.09,.8]));g.lineTo(...P([.075,.5]));g.lineTo(...P([-.075,.5]));g.fill();g.strokeStyle='rgba(60,50,40,.35)';g.lineWidth=1;g.stroke();
 g.fillStyle='#0b0b0f';g.fillRect(x-.082*h,gy-.56*h,.164*h,.045*h);L2(P([.0,.8]),P([.045,.7]),1.5,'#b9b3a2');
 L2(P([.01,.8]),P([.025,.88]),.04*h,skin);
 g.fillStyle=skin;g.beginPath();g.ellipse(...P([.03,.93]),.048*h,.058*h,0,0,7);g.fill();
@@ -100,16 +101,21 @@ g.fillStyle='#7d4f2a';g.beginPath();g.arc(RH[0],RH[1],.03*h,0,7);g.fill();g.fill
 function dojo(){let b=g.createLinearGradient(0,0,0,H);b.addColorStop(0,'#efe1c4');b.addColorStop(.78,'#d4b27c');b.addColorStop(.78,'#b9854d');b.addColorStop(1,'#6e4a2b');g.fillStyle=b;g.fillRect(0,0,W,H);
 g.strokeStyle='rgba(90,60,30,.22)';g.lineWidth=2;for(let i=0;i<9;i++){g.beginPath();g.moveTo(i*W/8,0);g.lineTo(i*W/8,H*.78);g.stroke()}
 g.strokeStyle='rgba(50,30,10,.3)';g.lineWidth=1;for(let i=0;i<8;i++){g.beginPath();g.moveTo(0,H*.78+i*H*.03);g.lineTo(W,H*.78+i*H*.03);g.stroke()}
-g.fillStyle='#4a6b3a';g.fillRect(0,H*.7,W,H*.08);tgt(W-30,H*.62,13)}
+g.fillStyle='#4a6b3a';g.fillRect(0,H*.7,W,H*.08);tgt(W-30,H*.62,13);
+g.fillStyle='rgba(255,252,238,.72)';g.fillRect(W*.06,H*.1,W*.26,H*.3);g.strokeStyle='#6b4a2a';g.lineWidth=3;g.strokeRect(W*.06,H*.1,W*.26,H*.3);for(let i=1;i<4;i++)ln(W*.06+i*W*.065,H*.1,W*.06+i*W*.065,H*.4,1.5,'#6b4a2a');for(let i=1;i<5;i++)ln(W*.06,H*.1+i*H*.06,W*.32,H*.1+i*H*.06,1.5,'#6b4a2a');
+let lg=g.createLinearGradient(W*.1,H*.4,W*.6,H*.8);lg.addColorStop(0,'rgba(255,240,190,.38)');lg.addColorStop(1,'rgba(255,240,190,0)');g.fillStyle=lg;g.beginPath();g.moveTo(W*.06,H*.4);g.lineTo(W*.32,H*.4);g.lineTo(W*.75,H*.8);g.lineTo(W*.25,H*.8);g.fill();
+let vg=g.createRadialGradient(W/2,H*.5,W*.3,W/2,H*.5,H*.8);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(30,15,5,.45)');g.fillStyle=vg;g.fillRect(0,0,W,H)}
 const ST=['足踏み','胴造り','弓構え','打起し','引分け','会','離れ','残心'];
 function steps(i){ST.forEach((s,j)=>txt(s,W*(j+.5)/8,44,j==i?14:11,j==i?'#ffd34d':'rgba(255,255,255,.6)'))}
-function hud(){txt('弓力 '+kilo+'kg',12,22,14,'#fff','left');
+function hud(){g.fillStyle='rgba(30,18,8,.6)';g.beginPath();g.roundRect(6,5,96,26,8);g.fill();txt('弓力 '+kilo+'kg',12,22,14,'#fff','left');
 if(mode==='real'){for(let i=0;i<4;i++){g.fillStyle=i<shots.length?(shots[i]?'#2e9d4a':'#c33'):'rgba(60,40,20,.5)';g.beginPath();g.arc(W-20-i*24,17,9,0,7);g.fill()}}
 else txt('射込み '+shots.length+'本 中'+shots.filter(x=>x).length,W-12,22,14,'#fff','right')}
 // ---- 視点：目線 ----
 function scene(){let s=g.createLinearGradient(0,0,0,H);s.addColorStop(0,'#b9d4e4');s.addColorStop(.28,'#e6edf0');s.addColorStop(.29,'#7a5632');s.addColorStop(.58,'#4a321c');s.addColorStop(.59,'#7da552');s.addColorStop(1,'#35592a');g.fillStyle=s;g.fillRect(0,0,W,H);
 g.fillStyle='rgba(0,0,0,.07)';for(let i=0;i<70;i++)g.fillRect(i*97%W,H*.3+(i*53%(H*.28)),14+(i%5)*9,2);
 g.strokeStyle='rgba(255,255,255,.1)';for(let i=-4;i<5;i++){g.beginPath();g.moveTo(W/2+i*8,H*.6);g.lineTo(W/2+i*W*.4,H);g.stroke()}
+let hz=g.createLinearGradient(0,H*.5,0,H*.62);hz.addColorStop(0,'rgba(240,240,225,0)');hz.addColorStop(.5,'rgba(240,240,225,.35)');hz.addColorStop(1,'rgba(240,240,225,0)');g.fillStyle=hz;g.fillRect(0,H*.5,W,H*.12);
+let sun=g.createRadialGradient(W*.2,0,5,W*.2,0,H*.6);sun.addColorStop(0,'rgba(255,245,200,.55)');sun.addColorStop(1,'rgba(255,245,200,0)');g.fillStyle=sun;g.fillRect(0,0,W,H);
 const cx=W/2,cy=H*.43,R=Rt();g.fillStyle='rgba(0,0,0,.2)';g.fillRect(cx-R*1.15,cy+R*.95,R*2.3,R*.15);tgt(cx,cy,R)}
 function vig(){let r=g.createRadialGradient(W/2,H*.43,W*.15,W/2,H*.43,Math.max(W,H)*.72);r.addColorStop(0,'rgba(0,0,0,0)');r.addColorStop(1,'rgba(0,0,0,.6)');g.fillStyle=r;g.fillRect(0,0,W,H)}
 function bowBody(cx,cy,al,dx){const w=Wb(),R=Rt(),Ht=R*1.25,x=cx+dx;g.save();g.globalAlpha=al;
@@ -118,18 +124,25 @@ g.beginPath();g.moveTo(x-w*.32,-10);g.lineTo(x+w*.32,-10);g.lineTo(x+w/2,cy-Ht/2
 g.fillStyle='#b98f55';g.fillRect(x-w/2,cy-Ht/2,w,Ht);
 for(let y=cy-Ht/2+2;y<cy+Ht/2;y+=3.2){ln(x-w/2,y,x+w/2,y+1.2,1,'rgba(70,40,15,.7)')}
 ln(x-w/2,cy-Ht/2,x+w/2,cy-Ht/2,3,'#2a1a0c');ln(x-w/2,cy+Ht/2,x+w/2,cy+Ht/2,3,'#2a1a0c');
-g.fillStyle='#3a2418';g.fillRect(x-w/2,cy+Ht/2,w,R*.55);
+g.fillStyle='#3a2418';g.fillRect(x-w/2,cy+Ht/2,w,R*.55);ln(x-w*.22,-10,x-w*.22,cy-Ht/2,1.5,'rgba(255,255,255,.2)');
 g.restore();return cy+Ht/2+R*.55}
 function bow(cx,cy,sx){g.save();g.translate(cx,0);g.scale(sx,1);g.translate(-cx,0);
 bowBody(cx,cy,.16,-Wb()*.09);bowBody(cx,cy,.16,Wb()*.09);const by=bowBody(cx,cy,.7,0),w=Wb(),R=Rt();
-g.fillStyle='#e9b98d';g.beginPath();g.roundRect(cx-w*.62,by-R*.42,w*1.35,R*.9,w*.3);g.fill();
+let hg2=g.createLinearGradient(cx-w*.6,0,cx+w*.75,0);hg2.addColorStop(0,'#b9805a');hg2.addColorStop(.5,'#f0c39a');hg2.addColorStop(1,'#c8906a');g.fillStyle=hg2;g.beginPath();g.roundRect(cx-w*.62,by-R*.42,w*1.35,R*.9,w*.3);g.fill();
 g.strokeStyle='rgba(120,70,40,.5)';g.lineWidth=1;for(let i=1;i<4;i++){g.beginPath();g.moveTo(cx-w*.55,by-R*.42+i*R*.2);g.lineTo(cx+w*.2,by-R*.42+i*R*.2);g.stroke()}
 g.fillStyle='#f2c8a0';g.beginPath();g.ellipse(cx+w*.48,by-R*.38,w*.17,R*.17,0,0,7);g.fill();
 if(sx>0){ln(cx+w*.58,H+5,cx+w*.52,by-R*.45,3,'#efe3c6');ln(cx+w*.58,H+5,cx+w*.57,H*.9,7,col)}
 g.restore();return[cx+w*.5,by-R*.4]}
+function gauge(){const x=20,w=W-40,y=76,M=12,sc=w/M,s0=sS(t);
+g.fillStyle='rgba(30,18,8,.72)';g.beginPath();g.roundRect(x-8,y-18,w+16,62,10);g.fill();
+for(let i=0;i<w;i+=2){const s=sS(i/sc);g.fillStyle=`hsl(${8+s*42},${60+s*30}%,${28+s*26}%)`;g.fillRect(x+i,y,2.2,10)}
+g.strokeStyle='#d9b45a';g.lineWidth=1.5;g.strokeRect(x,y,w,10);
+[7,8].forEach(k=>ln(x+k*sc,y-4,x+k*sc,y+14,1.5,'#fff'));txt('理想',x+7.5*sc,y-6,10,'#ffd34d');
+const px=x+Math.min(t,M)*sc;g.fillStyle='#fff';g.beginPath();g.moveTo(px,y+11);g.lineTo(px-6,y+22);g.lineTo(px+6,y+22);g.fill();
+txt('会 '+t.toFixed(1)+'秒',W-x,y+38,13,'#fff','right');txt('揺れ '+Math.round((1-s0)*100)+'%',x,y+38,12,'#ddd','left')}
 let last=0;
 function loop(ts){requestAnimationFrame(loop);const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
-if(S==='kai'){t+=dt;if(sensor){const G=.12*(.75+.05*(kilo-10))*(.5+cl(amp(t)/.5,0,1));ax=cl(ax+(gm-gp)*G,-3,3);ay=cl(ay-(bt-bp)*G,-3,3);gp=gm;bp=bt}}
+if(S==='kai'){t+=dt;if(sensor){const G=.12*(.75+.05*(kilo-10))*(.3+1.1*(1-sS(t)));ax=cl(ax+(gm-gp)*G,-3,3);ay=cl(ay-(bt-bp)*G,-3,3);gp=gm;bp=bt}}
 if(S==='fly'){fl+=dt/cur.dur;if(fl>=1){shots.push(cur.hit);S='result';snd(cur.hit?'hit':'miss',cl((kilo-10)/12,0,1))}}
 const R=Rt(),w=S==='kai'?wob(t):{x:0,y:0};
 if(S==='menu'||S==='ready'||S==='draw'){dojo();archer(W*.4,H*.8,H*.5,p,0);hud();
@@ -139,8 +152,7 @@ if(S==='draw'){g.fillStyle='rgba(0,0,0,.3)';g.fillRect(W*.2,H*.95,W*.6,7);g.fill
 else if(S==='kai'||S==='fly'){const bx=(S==='kai'?ax+w.x:ox),by=(S==='kai'?ay+w.y:oy),cx=W/2+bx*R,cy=H*.43+by*R;
 scene();
 if(S==='kai'){const th=bow(cx,cy,1);vig();hud();
-const sc=(W-40)/(Tm()+3.5),y=64;g.fillStyle='#777';g.fillRect(20,y,2.5*sc,9);g.fillStyle='#2e9d4a';g.fillRect(20+2.5*sc,y,(Tm()-2.5)*sc,9);g.fillStyle='#c33';g.fillRect(20+Tm()*sc,y,3.5*sc,9);g.fillStyle='#fff';g.fillRect(20+Math.min(t,Tm()+3.5)*sc-2,y-4,4,17);
-txt('会 '+t.toFixed(1)+'秒',W/2,y+28,14);
+gauge();
 txt('スマホを傾けて狙う',W/2,H*.96,14,'#fff');
 g.save();g.beginPath();const iw=W*.34,ih=H*.27,ix=8,iy=H-ih-34;g.roundRect(ix,iy,iw,ih,10);g.clip();g.fillStyle='rgba(240,226,196,.92)';g.fillRect(ix,iy,iw,ih);archer(ix+iw*.33,iy+ih*.97,Math.min(ih*.9,iw*1.05),1,Math.sin(t*2)*.002);g.restore()}
 else{const sx=Math.cos(Math.min(fl*3,1)*Math.PI),th=bow(cx,cy,sx);vig();
@@ -148,7 +160,8 @@ const tr=Math.min(1,fl),lx=W/2+cur.lx*R,ly=H*.43+cur.ly*R,x0=th[0],y0=th[1],ex=L
 ln(ex-Ln*.1,ey+Ln*.8,ex,ey,Math.max(1.5,4*(1-tr)+1),col);if(tr>=1){g.fillStyle='#fff';g.beginPath();g.arc(lx,ly,2.5,0,7);g.fill()}}}
 else if(S==='result'||S==='end'){dojo();const R2=Math.min(W,H)*.28,cx=W/2,cy=H*.4;tgt(cx,cy,R2);
 if(cur){const d=Math.hypot(cur.lx,cur.ly),k=d>2.2?2.2/d:1,mx=cx+cur.lx*R2*k,my=cy+cur.ly*R2*k;ln(mx-4,my+26,mx,my,4,col);g.fillStyle='#fff';g.beginPath();g.arc(mx,my,3,0,7);g.fill()}
-if(S==='result'&&cur){txt(cur.hit?'中り！':'外れ',W/2,H*.12,34,cur.hit?'#2e9d4a':'#c33');
+if(S==='result'&&cur){g.save();g.translate(W/2,H*.12);g.rotate(-.1);g.fillStyle=cur.hit?'#c4281c':'#555';g.beginPath();g.roundRect(-36,-36,72,72,8);g.fill();g.strokeStyle='#fff';g.lineWidth=2;g.strokeRect(-30,-30,60,60);g.restore();txt(cur.hit?'中':'外',W/2,H*.12+15,44,'#fff');
+g.fillStyle='rgba(250,242,222,.92)';g.beginPath();g.roundRect(W*.06,H*.665,W*.88,H*.13,10);g.fill();g.strokeStyle='#8f1d17';g.lineWidth=2;g.stroke();
 const dx=cur.lx,dy=cur.ly,pos=(Math.abs(dx)<.3&&Math.abs(dy)<.3)?'正中':(Math.abs(dy)>.3?(dy>0?'下':'上'):'')+(Math.abs(dx)>.3?(dx>0?'右':'左'):'');
 txt('矢所：'+pos+'　矢勢 '+v.toFixed(0)+'m/s　落差 '+(drop>=0?'＋':'')+drop.toFixed(2),W/2,H*.71,15,'#3b2a1a');
 txt('会 '+cur.t.toFixed(1)+'秒 ― '+cur.n,W/2,H*.76,14,'#3b2a1a');txt('タップで次へ',W/2,H*.93,15,'#fff')}
