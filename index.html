@@ -33,7 +33,10 @@ input[type=range]{width:240px;accent-color:var(--ac)}
 </div>
 <div id="v" style="display:none"><h2 style="margin:0;letter-spacing:.2em">対戦射場</h2>
 <div id="f1" style="display:flex;flex-direction:column;gap:10px;align-items:center"><input id="nm" type="text" placeholder="名前（6字まで）" maxlength="6"><input id="pw" type="text" placeholder="合言葉" maxlength="20"><button class="go" onclick="enter()">射場に入る</button><p class="s">同じ合言葉を入れた人が同じ射場に入ります<br>最初に入った人が幹事です（最大5人）</p></div>
-<div id="f2" style="display:none;text-align:center"><p class="s" id="rn"></p><div id="pl"></div><div id="hc" style="display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:10px"><button id="b1" class="go" onclick="startM('sz')">射詰め競射 開始</button><button id="b2" class="go" onclick="startM('en')">遠近競射 開始</button></div><p class="s" id="wt"></p></div>
+<div id="f2" style="display:none;text-align:center"><p class="s" id="rn"></p><div id="pl"></div><div id="hc" style="display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:10px"><button id="b1" class="go" onclick="startM('sz')">射詰め競射 開始</button><button id="b2" class="go" onclick="startM('en')">遠近競射 開始</button>
+<div id="enopts" style="display:none;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap">
+<span class="s">遠近の本数</span><button type="button" onclick="setEnN(1)" id="en1">1本</button><button type="button" onclick="setEnN(2)" id="en2">2本</button><button type="button" onclick="setEnN(3)" id="en3">3本</button>
+</div></div><p class="s" id="wt"></p></div>
 <p class="s" id="er" style="color:#ffb4a8"></p><button onclick="home()">戻る</button></div>
 <div id="vb"><button id="vr" class="go" style="width:150px" onclick="startM(D.c.m)">もう一度</button><button onclick="home()">退出</button></div>
 <script>
@@ -50,9 +53,16 @@ $('k').oninput=$('k').onchange=e=>{kilo=+e.target.value;$('kv').textContent=kilo
 let sensor=false,gm=0,bt=0,gp=0,bp=0,AC=null,sOn=false;
 function orf(e){if(e.gamma==null)return;sensor=true;gm=e.gamma;bt=e.beta}
 function home(){leaveRoom();mode='free';S='menu';$('m').style.display='flex';$('bk').style.display='none'}
+function enableSensor(){
+ try{
+  if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function'){
+   DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')addEventListener('deviceorientation',orf)}).catch(()=>{});
+  }else addEventListener('deviceorientation',orf);
+ }catch(e){}
+}
 function go(m){col=ucol;mode=m;shots=[];S='ready';msg='';p=0;$('m').style.display='none';$('bk').style.display='block';
 try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}
-if(!sOn){sOn=true;try{if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission)DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')addEventListener('deviceorientation',orf)}).catch(()=>{});else addEventListener('deviceorientation',orf)}catch(e){}}}
+if(!sOn){sOn=true;enableSensor()}}
 function snd(kind,lv){if(!AC)return;const n=AC.currentTime,sh=kind=='shot',len=sh?.22:.18,b=AC.createBuffer(1,AC.sampleRate*len,AC.sampleRate),d=b.getChannelData(0);
 for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/d.length*(sh?14:9));
 const s=AC.createBufferSource();s.buffer=b;const f=AC.createBiquadFilter();f.type=kind=='miss'?'lowpass':'bandpass';f.frequency.value=sh?1200+lv*2500:kind=='hit'?2200:500;
@@ -156,18 +166,19 @@ const px=x+Math.min(t,M)*sc;g.fillStyle='#fff';g.beginPath();g.moveTo(px,y+11);g
 txt('会 '+t.toFixed(1)+'秒',W-x,y+38,13,'#fff','right');txt('揺れ '+Math.round((1-s0)*100)+'%',x,y+38,12,'#ddd','left')}
 // ================= 対戦 =================
 const BY=64,COL=['#e8453c','#2f6fed','#f2c230','#33b36b','#9b59d6'],lab=n=>n<2?['大前']:['大前',...(n==3?['中']:['二的','三的','四的']).slice(0,n-2),'落ち'];
-let hall=null,lastE=0,mine=[],uT=0,pT=0;
+let hall=null,lastE=0,mine=[],uT=0,pT=0,enN=2;
 const dist=s=>Array.isArray(s)?Math.hypot(s[0],s[1]):9,hit=s=>dist(s)<1;
 // --- Firebase Realtime Database（REST・SDK不要）で room 互換の部屋を作る ---
 function fbRoom(base,name){const me=Math.random().toString(36).slice(2,10),U=p=>base+'/kyudo/'+name+(p?'/'+p:'')+'.json';
 let pres={},beat=0,seen={},snap=[],on=true,dirty=true,fails=0,remote={},busy=false,lp=0;
 const build=()=>{const now=Date.now(),a=[];for(const id in remote){if(id===me)continue;const n=remote[id];if(!n||typeof n!=='object')continue;
 let q=seen[id];if(!q||q.b!==n.b)q=seen[id]={b:n.b,at:now};
-if(now-q.at>60000){fetch(U(id),{method:'DELETE'}).catch(()=>{});delete remote[id];continue}
+const fresh=typeof n.t==='number'&&now-n.t<9000&&now-n.t>=-3000;
+if(!fresh){if(now-q.at>9000){delete remote[id]}continue}
 if(now-q.at<9000)a.push({peer:id,by:null,isMe:false,sameTab:false,kind:'viewer',guest:false,presence:n.p||{},updatedAt:q.at})}
 a.push({peer:me,by:null,isMe:true,sameTab:true,kind:'viewer',guest:false,presence:pres,updatedAt:now});snap=a};
 async function tick(){if(!on||busy)return;busy=true;
-try{const now=Date.now();if(dirty||now-lp>2000){dirty=false;lp=now;await fetch(U(me),{method:'PUT',body:JSON.stringify({b:++beat,p:pres})})}
+try{const now=Date.now();if(dirty||now-lp>2000){dirty=false;lp=now;await fetch(U(me),{method:'PUT',body:JSON.stringify({b:++beat,t:now,p:pres})})}
 const r=await fetch(U(''),{cache:'no-store'});remote=(await r.json())||{};fails=0}catch(e){fails++;dirty=true}
 busy=false;if(on)build()}
 build();const iv=setInterval(tick,400);tick();
@@ -182,22 +193,23 @@ const pr_=o=>{if(hall)Promise.resolve(hall.presence(o)).catch(()=>{})};
 function pp(v){if(mode==='vs')pr_({pp:v})}
 function pub(){if(mine.length<40)mine=mine.concat([[+cur.lx.toFixed(2),+cur.ly.toFixed(2)]]);pr_({st:mine,pp:0})}
 function showV(){$('m').style.display='none';$('v').style.display='flex';$('f1').style.display='flex';$('f2').style.display='none';$('er').textContent=''}
-function leaveRoom(){try{if(hall)hall.leave()}catch(e){}hall=null;D=null;lastE=0;mine=[];col=ucol;$('v').style.display='none';$('vb').style.display='none'}
-async function enter(){const er=$('er');er.textContent='';const nm=$('nm').value.trim().slice(0,6)||'射手',pw=$('pw').value.normalize('NFKC').trim().toLowerCase();
+function setEnN(n){enN=n;[1,2,3].forEach(i=>{const b=$('en'+i);b.style.outline=i===n?'3px solid #fff':'none';b.style.background=i===n?'#6a4b26':'#2b1f17'})}
+function leaveRoom(){try{if(hall)hall.leave()}catch(e){}hall=null;D=null;lastE=0;mine=[];col=ucol;$('v').style.display='none';$('vb').style.display='none';$('f1').style.display='flex';$('f2').style.display='none';$('enopts').style.display='none'}
+async function enter(){if(!sOn){sOn=true;enableSensor()}const er=$('er');er.textContent='';const nm=$('nm').value.trim().slice(0,6)||'射手',pw=$('pw').value.normalize('NFKC').trim().toLowerCase();
 if(!pw){er.textContent='合言葉を入力してください';return}
 let h=5381;for(const ch of pw)h=((h*33)^ch.charCodeAt(0))>>>0;
 try{const rm=await openRoom('kyudo-'+h.toString(36));await rm.presence({n:nm,j:Date.now(),k:kilo});hall=rm;
 mode='vs';S='wait';lastE=0;mine=[];$('f1').style.display='none';$('f2').style.display='';$('rn').textContent='射場：'+pw;$('bk').style.display='block';vui()}
 catch(e){hall=null;er.textContent=e&&e.code==='no_backend'?(window.claude?'claude.aiで招待されたログイン状態で開いてください':'オンライン対戦には FB_URL（Firebase）の設定が必要です'):'入れませんでした（'+((e&&e.code)||'error')+'）'}}
 function vui(){const v=vp(),pl=$('pl');pl.textContent='';v.forEach((x,i)=>{const e=document.createElement('div');e.textContent=(i?'':'★幹事 ')+x.presence.n+(x.sameTab?'（あなた）':'');pl.appendChild(e)});
-const h=isHost();$('hc').style.display=h?'flex':'none';$('wt').textContent=h?'2人以上で開始できます':'幹事の開始を待っています';$('b1').disabled=$('b2').disabled=v.length<2;
+const h=isHost();$('hc').style.display=h?'flex':'none';$('enopts').style.display=h?'flex':'none';$('wt').textContent=h?'2人以上で開始できます':'幹事の開始を待っています';$('b1').disabled=$('b2').disabled=v.length<2;
 $('er').textContent=hall&&hall.ok&&!hall.ok()?'通信エラー：Firebaseの設定を確認してください':''}
-function startM(m){const e=Math.max(Date.now(),(D&&D.c?D.c.e:0)+1);lastE=e;mine=[];pr_({e,m,ro:vp().slice(0,5).map(x=>x.peer),ep:e,st:[],pp:0});S='watch';$('v').style.display='none';$('vb').style.display='none'}
+function startM(m){const e=Math.max(Date.now(),(D&&D.c?D.c.e:0)+1);lastE=e;mine=[];pr_({e,m,n:m==='en'?enN:2,ro:vp().slice(0,5).map(x=>x.peer),ep:e,st:[],pp:0});S='watch';$('v').style.display='none';$('vb').style.display='none'}
 function derive(){if(!hall)return null;const ps=hall.peers().filter(x=>x.kind==='viewer'),by={};let c=null;
 ps.forEach(x=>{by[x.peer]=x;const r=x.presence;if(r.e&&Array.isArray(r.ro)&&(!c||r.e>c.e||(r.e===c.e&&(r.j||0)<(c.j||0))))c=r});
 if(!c)return{c:null};
 const ord=c.ro.map((id,i)=>{const x=by[id],r=x?x.presence:null;return{id,i,x,name:(r&&r.n)||'退席',here:!!x,sh:r&&r.ep===c.e&&Array.isArray(r.st)?r.st:[],pr:r}});
-const sz=c.m==='sz',N=sz?10:2;let alive=ord.filter(o=>o.here),turn=null,win=null;
+const sz=c.m==='sz',N=sz?10:(c.n||2);let alive=ord.filter(o=>o.here),turn=null,win=null;
 for(let r=0;r<N&&alive.length;r++){const nx=alive.find(o=>o.sh.length<=r);if(nx){turn=nx;break}
 if(sz){const h=alive.filter(o=>hit(o.sh[r]));if(h.length)alive=h;if(alive.length===1){win=alive[0];break}}}
 if(!turn&&!win&&alive.length){const dd=o=>sz?dist(o.sh[N-1]):o.sh.slice(0,N).reduce((a,s)=>a+dist(s),0);win=[...alive].sort((a,b)=>dd(a)-dd(b))[0]}
@@ -206,13 +218,13 @@ return{c,ord,turn,win,end:!turn,alive}}
 function vsStep(ts){if(S==='result'){if(!resT)resT=ts;else if(ts-resT>2500){S='watch';resT=0}}else resT=0;
 const d=D;if(!d||!d.c){if(S==='wait'&&ts-uT>400){uT=ts;vui()}return}
 const c=d.c;
-if(c.e!==lastE){lastE=c.e;mine=[];pr_({e:c.e,m:c.m,ro:c.ro,ep:c.e,st:[],pp:0});S='watch';$('v').style.display='none';$('vb').style.display='none';return}
+if(c.e!==lastE){lastE=c.e;mine=[];pr_({e:c.e,m:c.m,n:c.n||2,ro:c.ro,ep:c.e,st:[],pp:0});S='watch';$('v').style.display='none';$('vb').style.display='none';return}
 const my=d.ord.find(o=>o.x&&o.x.sameTab),tm=!d.end&&d.turn&&d.turn.x&&d.turn.x.sameTab;
 if(d.end&&(S==='watch'||S==='ready')){S='vend';$('vb').style.display='flex';$('vr').style.display=isHost()?'':'none'}
 else if(tm&&S==='watch'){S='ready';col=COL[my.i];msg=lab(d.ord.length)[my.i]+'：あなたの番です';p=0}
 else if(!tm&&S==='ready')S='watch';
 if((S==='draw'||S==='kai')&&ts-pT>120){pT=ts;pp(S==='kai'?1:+p.toFixed(2))}}
-function board(y0,d,cp){if(!d||!d.c)return y0;const o=d.ord,n=o.length,L=lab(n),hh=cp?18:22,rh=cp?15:20,fs=cp?11:12,hide=d.c.m==='en'&&!d.end;
+function board(y0,d,cp){if(!d||!d.c)return y0;const o=d.ord,n=o.length,L=lab(n),hh=cp?18:22,rh=cp?15:20,fs=cp?11:12,hide=false;
 g.fillStyle='rgba(30,18,8,.8)';g.beginPath();g.roundRect(8,y0,W-16,hh+n*rh+6,8);g.fill();g.strokeStyle='#d9b45a';g.lineWidth=1.5;g.stroke();
 txt('看的所　'+(d.c.m==='sz'?'射詰め':'遠近'),W/2,y0+hh-6,fs+1,'#ffd34d');
 o.forEach((q,i)=>{const y=y0+hh+i*rh+rh-5;g.globalAlpha=q.here&&!q.out?1:.4;g.fillStyle=COL[i];g.beginPath();g.arc(22,y-4,4.5,0,7);g.fill();
@@ -222,8 +234,8 @@ return y0+hh+n*rh+6}
 function vsDraw(){dojo();const d=D;if(S==='wait'||!d||!d.c)return;
 if(S==='watch'){const t=d.turn;if(t){const sv=col;col=COL[t.i];archer(W*.4,H*.8,H*.5,(t.pr&&t.pr.pp)||0,0);col=sv}
 board(BY,d);hud();txt(t?lab(d.ord.length)[t.i]+' '+t.name+' の射':'',W/2,H*.93,17,'#fff')}
-else{let y=board(BY,d);hud();const sz=d.c.m==='sz',R2=Math.min(W,H)*.24,dd=o=>o.sh.slice(0,2).reduce((a,s)=>a+dist(s),0);
-if(!sz){const cx=W/2,cy=y+R2+14;tgt(cx,cy,R2);d.ord.forEach(q=>q.sh.slice(0,2).forEach(s=>{const k=Math.min(1,2.2/dist(s)),mx=cx+s[0]*R2*k,my=cy+s[1]*R2*k;ln(mx-4,my+24,mx,my,4,COL[q.i]);g.fillStyle='#fff';g.beginPath();g.arc(mx,my,2,0,7);g.fill()}));
+else{let y=board(BY,d);hud();const sz=d.c.m==='sz',N=d.c.n||2,R2=Math.min(W,H)*.24,dd=o=>o.sh.slice(0,N).reduce((a,s)=>a+dist(s),0);
+if(!sz){const cx=W/2,cy=y+R2+14;tgt(cx,cy,R2);d.ord.forEach(q=>q.sh.slice(0,N).forEach(s=>{const k=Math.min(1,2.2/dist(s)),mx=cx+s[0]*R2*k,my=cy+s[1]*R2*k;ln(mx-4,my+24,mx,my,4,COL[q.i]);g.fillStyle='#fff';g.beginPath();g.arc(mx,my,2,0,7);g.fill()}));
 y=cy+R2+22;d.ord.filter(q=>q.here).sort((a,b)=>dd(a)-dd(b)).forEach((q,i)=>txt((i+1)+'位 '+q.name+'　中心から '+dd(q).toFixed(2),W/2,y+i*18,13,i?'#fff':'#ffd34d'));y+=d.ord.length*18+10}
 else y=H*.42;
 txt(d.win?d.win.name+' の勝ち！':'引き分け',W/2,y+24,30,'#ffd34d')}}
@@ -241,6 +253,7 @@ if(S==='draw'){g.fillStyle='rgba(0,0,0,.3)';g.fillRect(W*.2,H*.95,W*.6,7);g.fill
 else if(S==='kai'||S==='fly'){const bx=(S==='kai'?ax+w.x:ox),by=(S==='kai'?ay+w.y:oy),cx=W/2+bx*R,cy=H*.43+by*R;
 scene();
 if(S==='kai'){const th=bow(cx,cy,1);vig();hud();GY=mode==='vs'?board(BY,D,1)+26:76;
+ if(mode==='vs'&&D&&D.turn){const opp=D.ord.filter(o=>o.here&&o.x&&!o.x.sameTab&&o.sh.length===mine.length);if(opp.length){g.save();g.fillStyle='rgba(20,12,8,.72)';g.beginPath();g.roundRect(W*.55,H*.12,W*.4,H*.27,10);g.fill();opp.slice(0,1).forEach(o=>{txt(o.name+' の会',W*.75,H*.16,12,'#ffd34d');archer(W*.75,H*.38,H*.21,(o.pr&&o.pr.pp)||0,0)});g.restore()}}
 gauge();
 txt('スマホを傾けて狙う',W/2,H*.96,14,'#fff');
 g.save();g.beginPath();const iw=W*.34,ih=H*.27,ix=8,iy=H-ih-34;g.roundRect(ix,iy,iw,ih,10);g.clip();g.fillStyle='rgba(240,226,196,.92)';g.fillRect(ix,iy,iw,ih);archer(ix+iw*.33,iy+ih*.97,Math.min(ih*.9,iw*1.05),1,Math.sin(t*2)*.002);g.restore()}
