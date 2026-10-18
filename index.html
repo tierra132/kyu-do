@@ -38,7 +38,7 @@ input[type=range]{width:240px;accent-color:var(--ac)}
 <div id="vb"><button id="vr" class="go" style="width:150px" onclick="startM(D.c.m)">もう一度</button><button onclick="home()">退出</button></div>
 <script>
 // ★GitHub等で公開する場合：FirebaseのRealtime DatabaseのURLを入れる（例 'https://xxxx-default-rtdb.firebaseio.com'）
-const FB_URL='https://kyu-do-default-rtdb.firebaseio.com/%0A:%0Anull%0Aadd%0Adelete%0A';
+const FB_URL='https://kyu-do-default-rtdb.firebaseio.com';
 const C=document.getElementById('c'),g=C.getContext('2d');let W,H;
 if(!CanvasRenderingContext2D.prototype.roundRect)CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h){this.rect(x,y,w,h)};
 function rs(){const d=devicePixelRatio||1;W=innerWidth;H=innerHeight;C.width=W*d;C.height=H*d;g.setTransform(d,0,0,d,0,0)}
