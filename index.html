@@ -25,11 +25,10 @@ input[type=range]{width:240px;accent-color:var(--ac)}
 <div id="m">
 <h1>弓道</h1><p class="s">射法八節 ― 目指すは皆中</p>
 <div>弓力 <b id="kv">16</b> kg<br><input id="k" type="range" min="10" max="22" value="16"></div>
-<div id="sw"></div>
 <button class="go" onclick="go('real')">本番 ― 四つ矢</button>
 <button class="go" style="background:#2b1f17" onclick="go('free')">射込み練習</button>
 <button class="go" style="background:linear-gradient(#3b78f0,#1b3f8f)" onclick="showV()">対戦（友達と）</button>
-<p class="s">指を置き下へなぞる＝引き分け<br>引き切ると「会」。スマホを傾けて狙い、指を保って伸び合い<br>指を離すと離れ（会は7〜8秒が理想）<br>弓力で矢の速さと扱いやすさが変わります</p>
+<p class="s">指を置き下へなぞる＝引き分け<br>引き切ると「会」。スマホを傾けて狙い、指を保って伸び合い<br>指を離すと離れ<br>弓力で矢の速さと扱いやすさが変わります</p>
 </div>
 <div id="v" style="display:none"><h2 style="margin:0;letter-spacing:.2em">対戦射場</h2>
 <div id="f1" style="display:flex;flex-direction:column;gap:10px;align-items:center"><input id="nm" type="text" placeholder="名前（6字まで）" maxlength="6"><input id="pw" type="text" placeholder="合言葉" maxlength="20"><button class="go" onclick="enter()">射場に入る</button><p class="s">同じ合言葉を入れた人が同じ射場に入ります<br>最初に入った人が幹事です（最大5人）</p></div>
@@ -48,7 +47,6 @@ function rs(){const d=devicePixelRatio||1;W=innerWidth;H=innerHeight;C.width=W*d
 rs();addEventListener('resize',rs);
 let ucol='#e8453c',GY=76,D=null,resT=0,kilo=16,col='#e8453c',mode='real',aimS='full',S='menu',p=0,t=0,y0=0,px=0,py=0,ax=0,ay=0,fl=0,shots=[],msg='',v=0,drop=0,ox=0,oy=0,cur=null;
 const $=id=>document.getElementById(id),R_=(a,b)=>a+Math.random()*(b-a),cl=(x,a,b)=>Math.max(a,Math.min(b,x)),Lp=(a,b,k)=>a+(b-a)*k;
-['#e8453c','#2f6fed','#f2c230','#f4ead8'].forEach((c,i)=>{const b=document.createElement('button');b.className='sw'+(i?'':' on');b.style.background=c;b.onclick=()=>{col=ucol=c;[...$('sw').children].forEach(x=>x.classList.remove('on'));b.classList.add('on')};$('sw').appendChild(b)});
 $('k').oninput=$('k').onchange=e=>{kilo=+e.target.value;$('kv').textContent=kilo};
 let sensor=false,gm=0,bt=0,gp=0,bp=0,AC=null,sOn=false;
 function orf(e){if(e.gamma==null)return;sensor=true;gm=e.gamma;bt=e.beta}
@@ -162,7 +160,7 @@ function gauge(){const x=20,w=W-40,y=GY,M=12,sc=w/M,s0=sS(t);
 g.fillStyle='rgba(30,18,8,.72)';g.beginPath();g.roundRect(x-8,y-18,w+16,62,10);g.fill();
 for(let i=0;i<w;i+=2){const s=sS(i/sc);g.fillStyle=`hsl(${8+s*42},${60+s*30}%,${28+s*26}%)`;g.fillRect(x+i,y,2.2,10)}
 g.strokeStyle='#d9b45a';g.lineWidth=1.5;g.strokeRect(x,y,w,10);
-[7,8].forEach(k=>ln(x+k*sc,y-4,x+k*sc,y+14,1.5,'#fff'));txt('理想',x+7.5*sc,y-6,10,'#ffd34d');
+[7,8].forEach(k=>ln(x+k*sc,y-2,x+k*sc,y+12,1.2,'rgba(255,255,255,.55)'));
 const px=x+Math.min(t,M)*sc;g.fillStyle='#fff';g.beginPath();g.moveTo(px,y+11);g.lineTo(px-6,y+22);g.lineTo(px+6,y+22);g.fill();
 txt('会 '+t.toFixed(1)+'秒',W-x,y+38,13,'#fff','right');txt('揺れ '+Math.round((1-s0)*100)+'%',x,y+38,12,'#ddd','left')}
 // ================= 対戦 =================
@@ -204,8 +202,8 @@ let h=5381;for(const ch of pw)h=((h*33)^ch.charCodeAt(0))>>>0;
 try{const rm=await openRoom('kyudo-'+h.toString(36));await rm.presence({n:nm,j:Date.now(),k:kilo});hall=rm;
 mode='vs';S='wait';lastE=0;mine=[];$('f1').style.display='none';$('f2').style.display='';$('rn').textContent='射場：'+pw;$('bk').style.display='block';vui()}
 catch(e){hall=null;er.textContent=e&&e.code==='no_backend'?(window.claude?'claude.aiで招待されたログイン状態で開いてください':'オンライン対戦には FB_URL（Firebase）の設定が必要です'):'入れませんでした（'+((e&&e.code)||'error')+'）'}}
-function vui(){const v=vp(),pl=$('pl');pl.textContent='';v.forEach((x,i)=>{const e=document.createElement('div');e.textContent=(i?'':'★幹事 ')+x.presence.n+(x.sameTab?'（あなた）':'');pl.appendChild(e)});
-const h=isHost();$('hc').style.display=h?'flex':'none';$('enopts').style.display=h?'flex':'none';$('wt').textContent=h?'2人以上で開始できます':'幹事の開始を待っています';$('b1').disabled=$('b2').disabled=v.length<2;
+function vui(){const v=vp(),pl=$('pl');pl.textContent='';v.forEach((x,i)=>{const e=document.createElement('div'),c1=document.createElement('span'),c2=document.createElement('span');c1.textContent='● ';c1.style.color=COL[i%5];c2.textContent=(i?'':'★幹事 ')+x.presence.n+(x.sameTab?'（あなた）':'');e.appendChild(c1);e.appendChild(c2);pl.appendChild(e)});
+const h=isHost();$('hc').style.display=h?'flex':'none';$('enopts').style.display=h?'flex':'none';$('wt').textContent=h?'2人以上で開始できます（矢の色は順番ごとに自動）':'幹事の開始を待っています';$('b1').disabled=$('b2').disabled=v.length<2;
 $('er').textContent=hall&&hall.ok&&!hall.ok()?'通信エラー：Firebaseの設定を確認してください':''}
 function startM(m){const e=Math.max(Date.now(),(D&&D.c?D.c.e:0)+1);lastE=e;mine=[];sp={id:null};rv=null;shown={};pr_({e,m,na:m==='en'?enN:2,ro:vp().slice(0,5).map(x=>x.peer),ep:e,st:[],pp:0});S='watch';$('v').style.display='none';$('vb').style.display='none'}
 function derive(){if(!hall)return null;const ps=hall.peers().filter(x=>x.kind==='viewer'),by={};let c=null;
@@ -243,11 +241,20 @@ if(S==='watch'&&rv&&NOW<rv.until){revealDraw(d);return}
 if(S==='watch'){const t=d.turn;if(t&&spec(d,t))return;if(t){const sv=col;col=COL[t.i];archer(W*.4,H*.8,H*.5,sp.id===t.id?sp.p:0,0);col=sv}
 board(BY,d);hud();txt(t?lab(d.ord.length)[t.i]+' '+t.name+' の射':'',W/2,H*.93,17,'#fff')}
 else{let y=board(BY,d);hud();const sz=d.c.m==='sz',N=d.c.na||2,R2=Math.min(W,H)*.24,dd=o=>o.sh.slice(0,N).reduce((a,s)=>a+dist(s),0);
-if(!sz){const cx=W/2,cy=y+R2+14;tgt(cx,cy,R2);d.ord.forEach(q=>q.sh.slice(0,N).forEach(s=>{const k=Math.min(1,2.2/dist(s)),mx=cx+s[0]*R2*k,my=cy+s[1]*R2*k;ln(mx-4,my+24,mx,my,4,COL[q.i]);g.fillStyle='#fff';g.beginPath();g.arc(mx,my,2,0,7);g.fill()}));
+if(!sz){const cx=W/2,cy=y+R2+14;tgt(cx,cy,R2);d.ord.forEach(q=>q.sh.slice(0,N).forEach(s=>{const k=Math.min(1,2.2/dist(s)),mx=cx+s[0]*R2*k,my=cy+s[1]*R2*k;landArw(mx,my,R2,COL[q.i])}));
 y=cy+R2+22;d.ord.filter(q=>q.here).sort((a,b)=>dd(a)-dd(b)).forEach((q,i)=>txt((i+1)+'位 '+q.name+'　中心から '+dd(q).toFixed(2),W/2,y+i*18,13,i?'#fff':'#ffd34d'));y+=d.ord.length*18+10}
 else y=H*.42;
 txt(d.win?d.win.name+' の勝ち！':'引き分け',W/2,y+24,30,'#ffd34d')}}
-function stuck(d,cx,cy,R){d.ord.forEach(q=>q.sh.forEach(s=>{if(!Array.isArray(s))return;const k=Math.min(1,1.7/dist(s)),x=cx+s[0]*R*k,y=cy+s[1]*R*k;g.fillStyle=COL[q.i];g.beginPath();g.arc(x,y,3,0,7);g.fill();g.strokeStyle='#fff';g.lineWidth=1;g.stroke()}))}
+function arw(hx,hy,tx,ty,c,s){const dx=tx-hx,dy=ty-hy,L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,nx=-uy,ny=ux,f=Math.min(L*.45,s*.5),w=s*.1;
+g.fillStyle='rgba(0,0,0,.28)';g.beginPath();g.ellipse(hx+s*.04,hy+s*.05,Math.max(2,s*.09),Math.max(1.2,s*.05),0,0,7);g.fill();
+ln(hx,hy,tx,ty,Math.max(1.5,s*.06),'#e7d9b0');
+ln(tx,ty,tx-ux*f,ty-uy*f,Math.max(2,s*.1),c);
+g.fillStyle=c;[-1,1].forEach(k=>{g.beginPath();g.moveTo(tx+nx*k*w,ty+ny*k*w);g.lineTo(tx-ux*f+nx*k*w*.3,ty-uy*f+ny*k*w*.3);g.lineTo(tx-ux*f,ty-uy*f);g.lineTo(tx,ty);g.fill()});
+g.fillStyle='#2b2b2b';g.beginPath();g.arc(hx,hy,Math.max(1.5,s*.05),0,7);g.fill();
+g.fillStyle='#fff';g.beginPath();g.arc(tx,ty,Math.max(1,s*.035),0,7);g.fill()}
+function landArw(x,y,R,c){arw(x,y,x+R*.05,y-R*.42,c,R)}
+function flyArw(x,y,tr,R,c){const e=tr*tr*(3-2*tr);arw(x,y,x+Lp(-R*.1,R*.05,e),y+Lp(R*.9,-R*.42,e),c,Math.max(8,R*(.35+.65*tr)))}
+function stuck(d,cx,cy,R){d.ord.forEach(q=>q.sh.forEach(s=>{if(!Array.isArray(s))return;const k=Math.min(1,1.7/dist(s)),x=cx+s[0]*R*k,y=cy+s[1]*R*k;landArw(x,y,R,COL[q.i])}))}
 function spec(d,o){const pr=o.pr||{};if(sp.id!==o.id)sp={id:o.id,p:0,ax:pr.ax||0,ay:pr.ay||0,tk:-1,at:NOW,t:0};
 sp.p+=((pr.pp||0)-sp.p)*Math.min(1,DT*8);
 if(pr.ph!==2)return false;
@@ -259,8 +266,8 @@ txt(o.name+' の会',W/2,H*.96,15,'#fff');col=sv;return true}
 function revealDraw(d){const r=rv,R=Rt(),e=NOW-r.t0,fl=r.fd?Math.min(1,e/r.fd):1,sv=col;col=COL[r.i];
 const sx=Math.cos(Math.min(fl*3,1)*Math.PI),cx=W/2+r.ox*R,cy=H*.43+r.oy*R;scene();stuck(d,W/2,H*.43,R);const th=bow(cx,cy,sx);vig();
 const lx=W/2+r.lx*R,ly=H*.43+r.ly*R,ex=Lp(th[0],lx,fl),ey=Lp(th[1],ly,fl)-Math.sin(fl*Math.PI)*H*.07*Math.pow(75/r.fv,3),Ln=60*(1-fl)+5;
-ln(ex-Ln*.1,ey+Ln*.8,ex,ey,Math.max(1.5,4*(1-fl)+1),col);
-if(fl>=1){const dd=Math.hypot(r.lx,r.ly),ht=dd<1;g.fillStyle='#fff';g.beginPath();g.arc(lx,ly,3,0,7);g.fill();g.strokeStyle=col;g.lineWidth=2;g.beginPath();g.arc(lx,ly,9,0,7);g.stroke();
+flyArw(ex,ey,fl,R,col);
+if(fl>=1){const dd=Math.hypot(r.lx,r.ly),ht=dd<1;
 g.save();g.translate(W/2,H*.3);g.rotate(-.1);g.fillStyle=ht?'#c4281c':'#555';g.beginPath();g.roundRect(-30,-30,60,60,7);g.fill();g.restore();txt(ht?'中':'外',W/2,H*.3+13,38,'#fff');txt('中心から '+dd.toFixed(2),W/2,H*.3+52,14,'#fff')}
 board(BY,d,1);hud();txt(r.name+' の射',W/2,H*.96,15,'#fff');col=sv}
 function nextTxt(){if(mode==='vs'){const k=cl((NOW-resT)/2500,0,1);g.fillStyle='rgba(0,0,0,.3)';g.fillRect(W*.2,H*.945,W*.6,6);g.fillStyle='#ffd34d';g.fillRect(W*.2,H*.945,W*.6*(1-k),6);txt('次の射を待ちます（タップでスキップ）',W/2,H*.93,14,'#fff')}else txt('タップ'+'で次へ',W/2,H*.93,15,'#fff')}
@@ -284,14 +291,14 @@ txt('スマホを傾けて狙う',W/2,H*.96,14,'#fff');
 g.save();g.beginPath();const iw=W*.34,ih=H*.27,ix=8,iy=H-ih-34;g.roundRect(ix,iy,iw,ih,10);g.clip();g.fillStyle='rgba(240,226,196,.92)';g.fillRect(ix,iy,iw,ih);archer(ix+iw*.33,iy+ih*.97,Math.min(ih*.9,iw*1.05),1,Math.sin(t*2)*.002);g.restore()}
 else{const sx=Math.cos(Math.min(fl*3,1)*Math.PI),th=bow(cx,cy,sx);vig();
 const tr=Math.min(1,fl),lx=W/2+cur.lx*R,ly=H*.43+cur.ly*R,x0=th[0],y0=th[1],ex=Lp(x0,lx,tr),ey=Lp(y0,ly,tr)-Math.sin(tr*Math.PI)*H*.07*Math.pow(75/v,3),Ln=60*(1-tr)+5;
-ln(ex-Ln*.1,ey+Ln*.8,ex,ey,Math.max(1.5,4*(1-tr)+1),col);if(tr>=1){g.fillStyle='#fff';g.beginPath();g.arc(lx,ly,2.5,0,7);g.fill()}}}
+flyArw(ex,ey,tr,R,col);}}
 else if(S==='result'||S==='end'){dojo();const R2=Math.min(W,H)*.28,cx=W/2,cy=H*.4;tgt(cx,cy,R2);
-const hide=false;if(cur&&!hide){const d=Math.hypot(cur.lx,cur.ly),k=d>2.2?2.2/d:1,mx=cx+cur.lx*R2*k,my=cy+cur.ly*R2*k;ln(mx-4,my+26,mx,my,4,col);g.fillStyle='#fff';g.beginPath();g.arc(mx,my,3,0,7);g.fill()}
+const hide=false;if(cur&&!hide){const d=Math.hypot(cur.lx,cur.ly),k=d>2.2?2.2/d:1,mx=cx+cur.lx*R2*k,my=cy+cur.ly*R2*k;landArw(mx,my,R2,col)}
 if(S==='result'&&cur&&hide){txt('射了',W/2,H*.14,40,'#fff');txt('結果は最後に明かされます',W/2,H*.7,15,'#3b2a1a');nextTxt()}else if(S==='result'&&cur){g.save();g.translate(W/2,H*.12);g.rotate(-.1);g.fillStyle=cur.hit?'#c4281c':'#555';g.beginPath();g.roundRect(-36,-36,72,72,8);g.fill();g.strokeStyle='#fff';g.lineWidth=2;g.strokeRect(-30,-30,60,60);g.restore();txt(cur.hit?'中':'外',W/2,H*.12+15,44,'#fff');
 g.fillStyle='rgba(250,242,222,.92)';g.beginPath();g.roundRect(W*.06,H*.665,W*.88,H*.13,10);g.fill();g.strokeStyle='#8f1d17';g.lineWidth=2;g.stroke();
 const dx=cur.lx,dy=cur.ly,pos=(Math.abs(dx)<.3&&Math.abs(dy)<.3)?'正中':(Math.abs(dy)>.3?(dy>0?'下':'上'):'')+(Math.abs(dx)>.3?(dx>0?'右':'左'):'');
-txt('矢所：'+pos+'　矢勢 '+v.toFixed(0)+'m/s　落差 '+(drop>=0?'＋':'')+drop.toFixed(2),W/2,H*.71,15,'#3b2a1a');
-txt('会 '+cur.t.toFixed(1)+'秒 ― '+cur.n,W/2,H*.76,14,'#3b2a1a');nextTxt()}
+txt('中心から '+Math.hypot(cur.lx,cur.ly).toFixed(2),W/2,H*.71,20,'#3b2a1a');
+txt('会 '+cur.t.toFixed(1)+'秒',W/2,H*.76,14,'#3b2a1a');nextTxt()}
 if(S==='end'){const n=shots.filter(x=>x).length;txt(n===4?'皆中！！':n+'中 / 4射',W/2,H*.12,38,n===4?'#e8453c':'#3b2a1a');txt(n===4?'見事な皆中です':n>=3?'あと一本！':'残心を大切に',W/2,H*.71,18,'#3b2a1a');txt('タップでメニューへ',W/2,H*.93,15,'#fff')}
 hud()}}
 requestAnimationFrame(loop);
